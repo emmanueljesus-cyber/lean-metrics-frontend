@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análise Rápida — GitHub Lean Metrics</title>
+  <meta name="description" content="Gere um relatório Lean de qualquer repositório GitHub público sem precisar criar conta." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 z-50 border-b"
+       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
+         style="color: var(--color-texto);">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
+        Lean<span style="color: var(--color-acento);">Metrics</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="/dashboard.html" id="link-dashboard" style="display: none;"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-200"
+           style="color: var(--color-texto-suave); background: var(--color-fundo-card); border-color: var(--color-borda); text-decoration: none;">
+          Dashboard
+        </a>
+        <button id="btn-entrar-nav" data-auth="deslogado"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento cursor-pointer border-0 flex items-center gap-1.5"
+                style="color: #070d1a;">
+          <i data-lucide="git-branch" class="w-4 h-4"></i> Entrar com GitHub
+        </button>
+        <span id="nav-usuario"></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-6 py-12">
+
+    <!-- Cabeçalho -->
+    <div class="text-center mb-10" style="animation: entrar-baixo 0.5s ease;">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest mb-5"
+           style="background: var(--color-acento-suave); border: 1px solid rgba(0,200,150,0.2); color: var(--color-acento);">
+        <i data-lucide="search" class="w-3.5 h-3.5 mr-1 inline-block align-middle"></i> Sem necessidade de cadastro
+      </div>
+      <h1 class="text-4xl font-extrabold tracking-tight mb-3">Análise Rápida</h1>
+      <p class="text-base" style="color: var(--color-texto-suave);">
+        Informe qualquer repositório GitHub público e obtenha um relatório Lean instantâneo.
+      </p>
+    </div>
+
+    <!-- Formulário -->
+    <div class="glass-card p-7 mb-8" style="animation: entrar-baixo 0.5s ease 0.1s both;">
+      <form id="form-quick" novalidate class="flex flex-col gap-5">
+        <!-- Colar Link do GitHub -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto-suave);" for="input-link-github">
+            <i data-lucide="link" class="w-4 h-4 text-emerald-400"></i> Colar link do GitHub
+          </label>
+          <input id="input-link-github" type="url" placeholder="https://github.com/dono/projeto"
+                 class="rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                 style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);"
+                 onfocus="this.style.borderColor='var(--color-acento)'; this.style.boxShadow='0 0 0 3px rgba(0,200,150,0.12)'"
+                 onblur="this.style.borderColor='var(--color-borda)'; this.style.boxShadow='none'" />
+        </div>
+
+        <!-- Divisor Visual -->
+        <div class="flex items-center gap-2 my-0.5">
+          <div class="h-[1px] flex-1" style="background: var(--color-borda);"></div>
+          <span class="text-xs uppercase tracking-wider font-semibold" style="color: var(--color-texto-fraco);">Ou preencha manualmente</span>
+          <div class="h-[1px] flex-1" style="background: var(--color-borda);"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold" style="color: var(--color-texto-suave);" for="input-owner">
+              Owner
+            </label>
+            <input id="input-owner" type="text" placeholder="ex: torvalds" autocomplete="off"
+                   class="rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                   style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);"
+                   onfocus="this.style.borderColor='var(--color-acento)'; this.style.boxShadow='0 0 0 3px rgba(0,200,150,0.12)'"
+                   onblur="this.style.borderColor='var(--color-borda)'; this.style.boxShadow='none'" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold" style="color: var(--color-texto-suave);" for="input-repo">
+              Repositório
+            </label>
+            <input id="input-repo" type="text" placeholder="ex: linux" autocomplete="off"
+                   class="rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                   style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);"
+                   onfocus="this.style.borderColor='var(--color-acento)'; this.style.boxShadow='0 0 0 3px rgba(0,200,150,0.12)'"
+                   onblur="this.style.borderColor='var(--color-borda)'; this.style.boxShadow='none'" />
+          </div>
+        </div>
+
+        <!-- Token GitHub (opcional) -->
+        <details class="text-sm">
+          <summary class="cursor-pointer font-medium select-none flex items-center gap-1.5"
+                   style="color: var(--color-texto-suave);">
+            <i data-lucide="key" class="w-4 h-4 text-emerald-400"></i> Tem um token GitHub pessoal? (opcional — aumenta o rate limit)
+          </summary>
+          <div class="mt-3 flex flex-col gap-1.5">
+            <label class="text-xs" style="color: var(--color-texto-fraco);" for="input-token">
+              Token pessoal (não é armazenado)
+            </label>
+            <input id="input-token" type="password" placeholder="ghp_..."
+                   class="rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                   style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);"
+                   onfocus="this.style.borderColor='var(--color-acento)'"
+                   onblur="this.style.borderColor='var(--color-borda)'" />
+          </div>
+        </details>
+
+        <div id="erro-form" class="hidden rounded-xl px-4 py-3 text-sm"
+             style="background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.25); color: #ff4d6d;"></div>
+
+        <button type="submit" id="btn-analisar"
+                class="w-full py-3 rounded-xl font-bold text-sm gradient-acento border-0 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                style="color: #070d1a;"
+                onmouseover="this.style.boxShadow='0 0 24px rgba(0,200,150,0.35)'"
+                onmouseout="this.style.boxShadow='none'">
+          <i data-lucide="search" class="w-4 h-4"></i> Gerar Relatório
+        </button>
+      </form>
+    </div>
+
+    <!-- Exemplos rápidos -->
+    <div id="exemplos-rapidos" class="mb-8">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-3"
+         style="color: var(--color-texto-fraco);">Exemplos para testar</p>
+      <div class="flex flex-wrap gap-2" id="lista-exemplos">
+        <!-- Gerado por quick-report.ts -->
+      </div>
+    </div>
+
+    <!-- Área do resultado -->
+    <div id="area-resultado"></div>
+
+  </main>
+
+  <div id="area-toast"></div>
+  <script type="module" src="/src/quick-report.ts"></script>
+</body>
+</html>

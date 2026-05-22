@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório Lean — GitHub Lean Metrics</title>
+  <meta name="description" content="Relatório Lean detalhado com métricas e sinais de desperdício do repositório." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 z-50 border-b"
+       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
+         style="color: var(--color-texto);">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
+        Lean<span style="color: var(--color-acento);">Metrics</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="/dashboard.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-200 flex items-center gap-1"
+           style="color: var(--color-texto-suave); background: var(--color-fundo-card); border-color: var(--color-borda); text-decoration: none;">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i> Dashboard
+        </a>
+        <span id="nav-usuario"></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- Cabeçalho dinâmico -->
+    <div id="cabecalho-relatorio" class="mb-8">
+      <!-- Preenchido por relatorio.ts -->
+    </div>
+
+    <!-- Loading inicial -->
+    <div id="area-relatorio">
+      <div class="flex items-center justify-center gap-3 py-24"
+           style="color: var(--color-texto-suave);">
+        <div class="spinner"></div>
+        <span>Gerando relatório Lean...</span>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="area-toast"></div>
+  <script type="module" src="/src/relatorio.ts"></script>
+</body>
+</html>

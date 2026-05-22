@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* =============================================
+   style.css — Tailwind v4 + design system do
+   GitHub Lean Metrics (TCC)
+   ============================================= */
+
+
+/* ── Tema / Variáveis personalizadas ─────────
+   No Tailwind v4, usamos CSS custom properties
+   dentro do @theme para extender o design system
+   ─────────────────────────────────────────── */
+@theme {
+  /* Fontes */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+
+  /* Cores de marca */
+  --color-acento:        #00c896;
+  --color-acento-escuro: #00a87d;
+  --color-acento-suave:  rgba(0, 200, 150, 0.12);
+
+  /* Cores de fundo */
+  --color-fundo:         #070d1a;
+  --color-fundo-card:    rgba(255, 255, 255, 0.04);
+  --color-fundo-card-hover: rgba(255, 255, 255, 0.07);
+
+  /* Bordas */
+  --color-borda:         rgba(255, 255, 255, 0.08);
+  --color-borda-hover:   rgba(0, 200, 150, 0.35);
+
+  /* Texto */
+  --color-texto:         #e8edf5;
+  --color-texto-suave:   #8b9ab3;
+  --color-texto-fraco:   #4a5568;
+
+  /* Severidade */
+  --color-alta:   #ff4d6d;
+  --color-media:  #ffb84d;
+  --color-baixa:  #4dcfff;
+}
+
+/* ── Base global ──────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--color-fundo);
+  color: var(--color-texto);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Gradiente de fundo sutil */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0, 200, 150, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(100, 60, 220, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * { position: relative; z-index: 1; }
+
+/* ── Animações ────────────────────────────── */
+@keyframes entrar-baixo {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes entrar-cima {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulsar-brilho {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 200, 150, 0.2); }
+  50%       { box-shadow: 0 0 28px rgba(0, 200, 150, 0.55); }
+}
+
+/* ── Utilities personalizados ────────────── */
+@utility animar-entrar {
+  animation: entrar-baixo 0.5s ease forwards;
+}
+
+@utility spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-borda);
+  border-top-color: var(--color-acento);
+  border-radius: 9999px;
+  animation: girar 0.7s linear infinite;
+}
+
+@utility glass-card {
+  background: var(--color-fundo-card);
+  border: 1px solid var(--color-borda);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+@utility glass-card-hover {
+  &:hover {
+    border-color: var(--color-borda-hover);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@utility gradient-acento {
+  background: linear-gradient(135deg, var(--color-acento), var(--color-acento-escuro));
+}
+
+@utility texto-gradiente {
+  background: linear-gradient(135deg, var(--color-acento), #4dcfff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Tema Claro (Light Mode) ──────────────── */
+:root.light {
+  --color-fundo:         #f1f5f9; /* Slate 100 */
+  --color-fundo-card:    rgba(255, 255, 255, 0.75);
+  --color-fundo-card-hover: rgba(255, 255, 255, 0.95);
+  --color-borda:         rgba(15, 23, 42, 0.08);
+  --color-texto:         #0f172a; /* Slate 900 */
+  --color-texto-suave:   #475569; /* Slate 600 */
+  --color-texto-fraco:   #94a3b8; /* Slate 400 */
+}
+
+/* Ajustes e correções visuais para o Light Mode */
+:root.light body::before {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0, 200, 150, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(100, 60, 220, 0.08) 0%, transparent 50%);
+}
+
+:root.light nav {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+:root.light #modal {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+:root.light #modal-overlay {
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+:root.light input {
+  background: rgba(0, 0, 0, 0.025) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a !important;
+}
+
+:root.light input:focus {
+  background: #ffffff !important;
+}
+

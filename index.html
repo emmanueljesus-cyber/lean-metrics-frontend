@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Lean Metrics — Identifique desperdícios no seu desenvolvimento</title>
+  <meta name="description" content="Analise repositórios GitHub com métricas Lean: Lead Time, Cycle Time, WIP, Code Churn e muito mais. Trabalho de Conclusão de Curso." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- ── Navbar ───────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-50 border-b"
+       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4"
+         style="animation: entrar-cima 0.4s ease;">
+      <!-- Logo -->
+      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
+         style="color: var(--color-texto);">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-base gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
+        Lean<span style="color: var(--color-acento);">Metrics</span>
+      </a>
+
+      <!-- Links -->
+      <div class="hidden md:flex items-center gap-1">
+        <a href="/quick-report.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)'; this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)'; this.style.background='transparent'">
+          Análise Rápida
+        </a>
+        <a href="/dashboard.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);" data-auth="logado"
+           onmouseover="this.style.color='var(--color-texto)'; this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)'; this.style.background='transparent'">
+          Dashboard
+        </a>
+      </div>
+
+      <!-- Usuário -->
+      <div class="flex items-center gap-3">
+        <span id="nav-usuario"></span>
+        <a href="/dashboard.html" data-auth="logado"
+           class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento transition-all duration-200 hover:-translate-y-px"
+           style="color: #070d1a; text-decoration: none;"
+           onmouseover="this.style.boxShadow='0 0 20px rgba(0,200,150,0.3)'"
+           onmouseout="this.style.boxShadow='none'">
+          Dashboard
+        </a>
+        <button id="btn-entrar" data-auth="deslogado"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento cursor-pointer border-0"
+                style="color: #070d1a;">
+          Entrar com GitHub
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ─────────────────────────────────────────────── -->
+  <main>
+    <section class="py-24 text-center px-6">
+      <div class="max-w-4xl mx-auto">
+        <!-- Tag TCC -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest mb-8"
+             style="background: var(--color-acento-suave); border: 1px solid rgba(0,200,150,0.2); color: var(--color-acento); animation: entrar-baixo 0.5s ease;">
+          <i data-lucide="graduation-cap" class="w-4 h-4 text-emerald-400"></i> Trabalho de Conclusão de Curso
+        </div>
+
+        <!-- Título -->
+        <h1 class="mb-6" style="animation: entrar-baixo 0.5s ease 0.1s both;">
+          Identifique desperdícios no seu<br />
+          <span class="texto-gradiente">desenvolvimento de software</span>
+        </h1>
+
+        <!-- Subtítulo -->
+        <p class="text-lg max-w-xl mx-auto mb-10"
+           style="color: var(--color-texto-suave); animation: entrar-baixo 0.5s ease 0.2s both;">
+          Conecte um repositório GitHub e obtenha um relatório baseado nos princípios do
+          <strong style="color: var(--color-texto);">Lean Software Development</strong> —
+          com métricas reais e detecção automática de gargalos.
+        </p>
+
+        <!-- CTAs -->
+        <div class="flex gap-4 justify-center flex-wrap"
+             style="animation: entrar-baixo 0.5s ease 0.3s both;">
+          <button id="btn-hero-login" data-auth="deslogado"
+                  class="px-7 py-3 rounded-xl text-base font-bold gradient-acento cursor-pointer border-0 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                  style="color: #070d1a;"
+                  onmouseover="this.style.boxShadow='0 0 28px rgba(0,200,150,0.4)'"
+                  onmouseout="this.style.boxShadow='none'">
+            <i data-lucide="git-branch" class="w-5 h-5"></i> Entrar com GitHub
+          </button>
+          <a href="/dashboard.html" data-auth="logado"
+             class="px-7 py-3 rounded-xl text-base font-bold gradient-acento transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+             style="color: #070d1a; text-decoration: none;"
+             onmouseover="this.style.boxShadow='0 0 28px rgba(0,200,150,0.4)'"
+             onmouseout="this.style.boxShadow='none'">
+            <i data-lucide="zap" class="w-5 h-5"></i> Ir para o Dashboard
+          </a>
+          <a href="/quick-report.html"
+             class="px-7 py-3 rounded-xl text-base font-bold border transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+             style="color: var(--color-texto); text-decoration: none; background: var(--color-fundo-card); border-color: var(--color-borda);"
+             onmouseover="this.style.borderColor='var(--color-borda-hover)'"
+             onmouseout="this.style.borderColor='var(--color-borda)'">
+            <i data-lucide="search" class="w-5 h-5"></i> Análise Rápida
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Grade de métricas ──────────────────────────────── -->
+    <section class="py-16 px-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-14">
+          <h2 class="mb-3">O que é medido?</h2>
+          <p style="color: var(--color-texto-suave);">9 categorias de métricas Lean extraídas diretamente do GitHub</p>
+        </div>
+        <div id="grade-metricas"
+             class="grid gap-4"
+             style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+          <!-- Preenchido por landing.ts -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Como funciona ─────────────────────────────────── -->
+    <section class="py-16 px-6" style="background: rgba(255,255,255,0.015); border-top: 1px solid var(--color-borda); border-bottom: 1px solid var(--color-borda);">
+      <div class="max-w-5xl mx-auto">
+        <h2 class="text-center mb-14">Como funciona</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.1s both;">
+            <div class="text-5xl mb-5 flex justify-center text-emerald-400"><i data-lucide="key" class="w-12 h-12"></i></div>
+            <h3 class="mb-3 text-lg">1. Autentique</h3>
+            <p class="text-sm" style="color: var(--color-texto-suave);">Entre com sua conta GitHub via OAuth. Seus dados são protegidos por JWT e cookie httponly.</p>
+          </div>
+          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.2s both;">
+            <div class="text-5xl mb-5 flex justify-center text-[#4dcfff]"><i data-lucide="folder" class="w-12 h-12"></i></div>
+            <h3 class="mb-3 text-lg">2. Cadastre um repositório</h3>
+            <p class="text-sm" style="color: var(--color-texto-suave);">Informe o owner e o nome do repositório — público ou privado — que deseja analisar.</p>
+          </div>
+          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.3s both;">
+            <div class="text-5xl mb-5 flex justify-center text-[#a78bfa]"><i data-lucide="bar-chart-3" class="w-12 h-12"></i></div>
+            <h3 class="mb-3 text-lg">3. Obtenha o relatório</h3>
+            <p class="text-sm" style="color: var(--color-texto-suave);">A API coleta commits, PRs e issues, processa métricas Lean e detecta desperdícios automaticamente.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CTA final ─────────────────────────────────────── -->
+    <section class="py-24 px-6 text-center">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="mb-5">Pronto para começar?</h2>
+        <p class="mb-10" style="color: var(--color-texto-suave);">
+          Use a análise rápida sem precisar criar uma conta, ou entre com GitHub para salvar seus relatórios.
+        </p>
+        <div class="flex gap-4 justify-center flex-wrap">
+          <button id="btn-cta-login" data-auth="deslogado"
+                  class="px-7 py-3 rounded-xl text-base font-bold gradient-acento cursor-pointer border-0 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                  style="color: #070d1a;">
+            <i data-lucide="git-branch" class="w-5 h-5"></i> Entrar com GitHub
+          </button>
+          <a href="/quick-report.html"
+             class="px-7 py-3 rounded-xl text-base font-bold border transition-colors duration-200 flex items-center justify-center gap-2"
+             style="color: var(--color-texto); text-decoration: none; background: var(--color-fundo-card); border-color: var(--color-borda);">
+            <i data-lucide="search" class="w-5 h-5"></i> Análise sem cadastro
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Rodapé ────────────────────────────────────────────── -->
+  <footer class="border-t py-8 px-6" style="border-color: var(--color-borda);">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <span class="text-sm" style="color: var(--color-texto-fraco);">
+        GitHub Lean Metrics — TCC · Desenvolvido com FastAPI + Vite + Tailwind v4
+      </span>
+      <span class="text-sm" style="color: var(--color-texto-fraco);">
+        Dados via <a href="https://docs.github.com/rest" target="_blank" rel="noopener"
+                     style="color: var(--color-acento);">GitHub REST API</a>
+      </span>
+    </div>
+  </footer>
+
+  <div id="area-toast"></div>
+  <script type="module" src="/src/landing.ts"></script>
+</body>
+</html>
