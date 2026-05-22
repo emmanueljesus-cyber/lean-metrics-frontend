@@ -67,3 +67,4 @@ Este comando executa a verificação estrita do compilador TypeScript (`tsc`) e 
 ---
 
 Desenvolvido com carinho para a defesa de TCC de Engenharia de Software. 🎓🚀
+# lean-metrics-frontend
