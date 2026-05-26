@@ -4,12 +4,12 @@
  */
 
 import './style.css';
-import { buscarUsuarioAtual, atualizarNavbarUsuario, aplicarEstadoAuth, iniciarLoginGitHub, mostrarToast } from './auth';
+import { buscarUsuarioAtual, atualizarNavbarUsuario, aplicarEstadoAuth, iniciarLoginGitHub, mostrarToast } from './autenticacao';
 import { api, ErroApiHTTP } from './api';
 import {
   formatarData, formatarValorMetrica, htmlCarregando, htmlErro, setBtnCarregando, inicializarIcones, extrairGithubUrl,
-} from './utils';
-import { NOMES_METRICAS, NOMES_CATEGORIAS, type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade } from './types';
+} from './utilitarios';
+import { NOMES_METRICAS, NOMES_CATEGORIAS, type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade } from './tipos';
 
 // ── Exemplos pré-definidos ─────────────────────────────────────────
 
@@ -92,21 +92,60 @@ const ICONES_CAT: Record<string, string> = {
   'Trabalho parcialmente feito':  '<i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>',
 };
 
+const METRICS_ICONS: Record<string, { icon: string; colorClass: string }> = {
+  lead_time_pr_hours:          { icon: 'clock',       colorClass: 'text-indigo-400' },
+  cycle_time_issue_hours:      { icon: 'rotate-cw',   colorClass: 'text-blue-400' },
+  waiting_time_pr_hours:       { icon: 'hourglass',   colorClass: 'text-purple-400' },
+  wip_open_pull_requests:      { icon: 'activity',    colorClass: 'text-amber-400' },
+  wip_open_issues:             { icon: 'activity',    colorClass: 'text-amber-400' },
+  abandoned_issues_count:      { icon: 'alert-circle', colorClass: 'text-amber-500' },
+  throughput_30d:              { icon: 'zap',         colorClass: 'text-yellow-400' },
+  commit_velocity_daily:       { icon: 'trending-up', colorClass: 'text-yellow-500' },
+  days_since_last_commit:      { icon: 'calendar',    colorClass: 'text-gray-400' },
+  defect_rate:                 { icon: 'bug',         colorClass: 'text-rose-400' },
+  rework_fix_commit_ratio:     { icon: 'layers',      colorClass: 'text-emerald-400' },
+  chaotic_commit_ratio:        { icon: 'alert-triangle', colorClass: 'text-rose-500' },
+  rejected_pr_ratio:           { icon: 'alert-circle', colorClass: 'text-rose-300' },
+  top_contributor_share:       { icon: 'users',       colorClass: 'text-teal-400' },
+  active_contributors_30d:     { icon: 'users',       colorClass: 'text-teal-400' },
+  contributor_distribution:    { icon: 'users',       colorClass: 'text-teal-500' },
+  code_churn_weekly_avg:       { icon: 'code',        colorClass: 'text-cyan-400' },
+  most_active_branch_name:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
+  most_active_branch_days:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
+  total_commits_sampled:       { icon: 'database',    colorClass: 'text-slate-400' },
+  total_prs_sampled:           { icon: 'git-pull-request', colorClass: 'text-slate-400' },
+  open_issues_repository_total:{ icon: 'hash',        colorClass: 'text-slate-400' },
+};
+
 function htmlMetricaCompacta(m: ValorMetrica, delay: number): string {
   const nome  = NOMES_METRICAS[m.name] ?? m.name;
-  const valor = formatarValorMetrica(m.value, m.unit);
-  const isNulo = m.value === null;
+  let valor = formatarValorMetrica(m.value, m.unit);
+  let isNulo = m.value === null;
+
+  // Ajuste especial para exibir o nome da branch ativa quando o valor e nulo
+  if (m.name === 'most_active_branch_name' && m.extra && m.extra.branch_name) {
+    valor = String(m.extra.branch_name);
+    isNulo = false;
+  }
+
+  const cfg = METRICS_ICONS[m.name] ?? { icon: 'info', colorClass: 'text-[#00c896]' };
+  const iconeHtml = `<i data-lucide="${cfg.icon}" class="w-4.5 h-4.5 ${cfg.colorClass}"></i>`;
 
   return `
-    <div class="glass-card p-4 flex flex-col gap-1.5 animar-entrar"
-         style="animation-delay: ${delay}s;"
+    <div class="glass-card p-4 flex flex-col justify-between gap-3.5 animar-entrar relative group cursor-help"
+         style="animation-delay: ${delay}s; min-height: 110px;"
+         data-tooltip="${m.description}"
          onmouseover="this.style.borderColor='var(--color-borda-hover)'; this.style.transform='translateY(-2px)'"
          onmouseout="this.style.borderColor='var(--color-borda)'; this.style.transform=''">
-      <p class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-texto-suave);">${nome}</p>
+      <div class="flex items-start justify-between gap-2 w-full">
+        <p class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-texto-suave);">${nome}</p>
+        <span class="flex-shrink-0 flex items-center justify-center p-1 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-borda);">
+          ${iconeHtml}
+        </span>
+      </div>
       <p style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: ${isNulo ? 'var(--color-texto-fraco)' : 'var(--color-acento)'};">
         ${isNulo ? '—' : valor}
       </p>
-      <p class="text-xs" style="color: var(--color-texto-suave);">${m.description}</p>
     </div>
   `;
 }
@@ -138,9 +177,16 @@ function renderizarResultado(relatorio: RelatorioRepositorio): void {
     'active_contributors_30d','days_since_last_commit',
   ];
 
+  const metricasFiltradas = relatorio.metrics.filter(m => 
+    m.name !== 'contributor_distribution' &&
+    m.name !== 'total_commits_sampled' &&
+    m.name !== 'total_prs_sampled' &&
+    m.name !== 'open_issues_repositorio_total'
+  );
+
   const metricas = [
-    ...metricasPrincipais.map(n => relatorio.metrics.find(m => m.name === n)).filter(Boolean) as ValorMetrica[],
-    ...relatorio.metrics.filter(m => !metricasPrincipais.includes(m.name)),
+    ...metricasPrincipais.map(n => metricasFiltradas.find(m => m.name === n)).filter(Boolean) as ValorMetrica[],
+    ...metricasFiltradas.filter(m => !metricasPrincipais.includes(m.name)),
   ];
 
   const sinais = [...relatorio.waste_signals].sort((a, b) => {
@@ -155,7 +201,7 @@ function renderizarResultado(relatorio: RelatorioRepositorio): void {
       <div class="flex-1 min-w-[250px]">
         <h2 class="text-xl font-bold mb-0.5">${relatorio.full_name}</h2>
         <p class="text-sm" style="color: var(--color-texto-suave);">
-          Relatório gerado em ${formatarData(relatorio.generated_at)}
+          Relatório gerado em ${formatarData(relatorio.gerado_em)}
         </p>
         
         ${relatorio.performance ? `
@@ -278,10 +324,10 @@ async function iniciar(): Promise<void> {
   // Preenche exemplos
   renderizarExemplos();
 
-  // Pré-preenche pela URL (ex: ?owner=torvalds&repo=linux)
+  // Pré-preenche pela URL (ex: ?proprietario=torvalds&repositorio=linux)
   const params = new URLSearchParams(window.location.search);
-  const ownerUrl = params.get('owner');
-  const repoUrl  = params.get('repo');
+  const ownerUrl = params.get('proprietario') || params.get('owner');
+  const repoUrl  = params.get('repositorio') || params.get('repo');
   if (ownerUrl && repoUrl) {
     inputOwner.value = ownerUrl;
     inputRepo.value  = repoUrl;

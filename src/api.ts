@@ -11,7 +11,7 @@ import type {
   CriarRepositorioInput,
   AtualizarRepositorioInput,
   RelatorioRepositorio,
-} from './types';
+} from './tipos';
 
 // Em dev, o Vite proxy redireciona /api → http://localhost:8000/api
 // Em produção ou caso VITE_API_URL esteja definida, a usamos como base absoluta.
@@ -73,6 +73,7 @@ function get<T>(caminho: string, cabecalhos?: Record<string, string>): Promise<T
   return requisicao<T>(caminho, { method: 'GET', headers: cabecalhos });
 }
 
+// SEC-03: Permite o envio de corpo (body) em requisições de criação de recurso (POST)
 function post<T>(caminho: string, corpo?: unknown): Promise<T> {
   return requisicao<T>(caminho, { method: 'POST', body: JSON.stringify(corpo) });
 }
@@ -90,35 +91,35 @@ function deletar(caminho: string): Promise<null> {
 export const api = {
   auth: {
     /** Retorna o perfil do usuário autenticado (usa cookie httponly) */
-    perfil: () => get<UsuarioPerfil>('/auth/me'),
+    perfil: () => get<UsuarioPerfil>('/autenticacao/perfil'),
 
     /** Encerra a sessão e limpa os cookies */
-    logout: () => post<null>('/auth/logout'),
+    logout: () => post<null>('/autenticacao/sair'),
   },
 
   repositorios: {
     /** Lista os repositórios do usuário com paginação */
     listar: (pagina = 1, tamanho = 20) =>
-      get<Pagina<Repositorio>>(`/repositories?page=${pagina}&page_size=${tamanho}`),
+      get<Pagina<Repositorio>>(`/repositorios?page=${pagina}&page_size=${tamanho}`),
 
     /** Busca um repositório pelo ID */
-    buscar: (id: number) => get<Repositorio>(`/repositories/${id}`),
+    buscar: (id: number) => get<Repositorio>(`/repositorios/${id}`),
 
     /** Cadastra um novo repositório */
     criar: (dados: CriarRepositorioInput) =>
-      post<Repositorio>('/repositories', dados),
+      post<Repositorio>('/repositorios', dados),
 
     /** Atualiza campos opcionais de um repositório */
     atualizar: (id: number, dados: AtualizarRepositorioInput) =>
-      patch<Repositorio>(`/repositories/${id}`, dados),
+      patch<Repositorio>(`/repositorios/${id}`, dados),
 
     /** Remove um repositório permanentemente */
-    deletar: (id: number) => deletar(`/repositories/${id}`),
+    deletar: (id: number) => deletar(`/repositorios/${id}`),
 
     /** Lista repositórios do GitHub para importação */
     listarDoGitHub: (tokenGitHub?: string) =>
       get<RepositorioGitHub[]>(
-        '/repositories/github/list',
+        '/repositorios/github/listar',
         tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
       ),
   },
@@ -127,18 +128,18 @@ export const api = {
     /** Gera um relatório Lean para um repositório cadastrado */
     gerar: (repositorioId: number, tokenGitHub?: string) =>
       get<RelatorioRepositorio>(
-        `/reports/${repositorioId}/report`,
+        `/relatorios/repositorio/${repositorioId}/gerar`,
         tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
       ),
 
     /** Histórico de relatórios persistidos do repositório */
     historico: (repositorioId: number, limite = 10) =>
-      get<RelatorioRepositorio[]>(`/reports/${repositorioId}/reports?limit=${limite}`),
+      get<RelatorioRepositorio[]>(`/relatorios/repositorio/${repositorioId}/historico?limit=${limite}`),
 
     /** Análise rápida de qualquer repositório público */
-    rapido: (owner: string, repo: string, tokenGitHub?: string) =>
+    rapido: (proprietario: string, repositorio: string, tokenGitHub?: string) =>
       get<RelatorioRepositorio>(
-        `/reports/quick-report?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        `/relatorios/relatorio-rapido?proprietario=${encodeURIComponent(proprietario)}&repositorio=${encodeURIComponent(repositorio)}`,
         tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
       ),
   },

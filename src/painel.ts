@@ -4,10 +4,10 @@
  */
 
 import './style.css';
-import { exigirAutenticacao, atualizarNavbarUsuario, fazerLogout, mostrarToast } from './auth';
+import { exigirAutenticacao, atualizarNavbarUsuario, fazerLogout, mostrarToast } from './autenticacao';
 import { api, ErroApiHTTP } from './api';
-import { htmlCarregando, htmlVazio, htmlErro, setBtnCarregando, formatarDataCurta, inicializarIcones, extrairGithubUrl } from './utils';
-import type { Repositorio, CriarRepositorioInput } from './types';
+import { htmlCarregando, htmlVazio, htmlErro, setBtnCarregando, formatarDataCurta, inicializarIcones, extrairGithubUrl } from './utilitarios';
+import type { Repositorio, CriarRepositorioInput } from './tipos';
 
 // ── Estado ─────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ function renderizarCardRepositorio(repo: Repositorio): string {
           </div>
           <h3 class="font-bold text-base truncate" style="color: var(--color-texto);">${repo.full_name}</h3>
           <p class="text-xs mt-0.5" style="color: var(--color-texto-suave);">
-            Branch: <code style="color: var(--color-acento);">${repo.default_branch}</code>
+            Branch: <code style="color: var(--color-acento);">${repo.branch_padrao}</code>
           </p>
         </div>
         <a href="${repo.html_url}" target="_blank" rel="noopener"
@@ -102,7 +102,7 @@ function renderizarCardRepositorio(repo: Repositorio): string {
       <div class="flex items-center justify-between gap-2 pt-3"
            style="border-top: 1px solid var(--color-borda);">
         <span class="text-xs" style="color: var(--color-texto-fraco);">
-          Cadastrado em ${formatarDataCurta(repo.created_at)}
+          Cadastrado em ${formatarDataCurta(repo.criado_em)}
         </span>
         <div class="flex gap-2">
           <button id="btn-excluir-${repo.id}"
@@ -244,7 +244,7 @@ async function iniciar(): Promise<void> {
 
   const subtitulo = document.getElementById('subtitulo-usuario');
   if (subtitulo) {
-    subtitulo.textContent = `Bem-vindo, ${usuario.username}! Aqui estão seus repositórios.`;
+    subtitulo.textContent = `Bem-vindo, ${usuario.nome_usuario}! Aqui estão seus repositórios.`;
   }
 
   // Carrega repositórios do GitHub do usuário em segundo plano
@@ -305,8 +305,8 @@ async function iniciar(): Promise<void> {
     }
 
     await criarRepositorio({
-      owner_name: owner,
-      repository_name: repo,
+      nome_proprietario: owner,
+      nome_repositorio: repo,
       description: inputDescricao.value.trim() || null,
     });
   });

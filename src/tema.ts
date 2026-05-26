@@ -3,7 +3,7 @@
  * O Dark Mode é o tema padrão.
  */
 
-import { inicializarIcones } from './utils';
+import { inicializarIcones } from './utilitarios';
 
 export function inicializarTema(): void {
   const temaSalvo = localStorage.getItem('theme') || 'dark';

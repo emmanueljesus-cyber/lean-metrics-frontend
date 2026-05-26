@@ -1,47 +1,47 @@
 /**
- * types.ts — Tipos TypeScript alinhados aos schemas da API
+ * tipos.ts — Tipos TypeScript alinhados aos schemas da API
  */
 
 /* ── Autenticação ──────────────────────────── */
 
 export interface UsuarioPerfil {
   id: number;
-  username: string;
+  nome_usuario: string;
   email: string;
-  is_active: boolean;
-  avatar_url: string | null;
-  has_github: boolean;
-  created_at: string;
+  ativo: boolean;
+  url_avatar: string | null;
+  tem_github: boolean;
+  criado_em: string;
 }
 
 /* ── Repositórios ──────────────────────────── */
 
 export interface Repositorio {
   id: number;
-  owner_name: string;
-  repository_name: string;
+  nome_proprietario: string;
+  nome_repositorio: string;
   full_name: string;
   description: string | null;
   provider: string;
-  default_branch: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  owner_id: number;
+  branch_padrao: string;
+  ativo: boolean;
+  criado_em: string;
+  atualizado_em: string;
+  usuario_id: number;
   private: boolean;
   html_url: string;
 }
 
 export interface CriarRepositorioInput {
-  owner_name: string;
-  repository_name: string;
+  nome_proprietario: string;
+  nome_repositorio: string;
   description?: string | null;
-  default_branch?: string;
+  branch_padrao?: string;
 }
 
 export interface AtualizarRepositorioInput {
   description?: string | null;
-  default_branch?: string | null;
+  branch_padrao?: string | null;
 }
 
 export interface RepositorioGitHub {
@@ -90,9 +90,9 @@ export interface PerformanceMeta {
 }
 
 export interface RelatorioRepositorio {
-  repository_id: number | null;
+  repositorio_id: number | null;
   full_name: string;
-  generated_at: string;
+  gerado_em: string;
   metrics: ValorMetrica[];
   waste_signals: SinalDesperdicio[];
   performance?: PerformanceMeta | null;
@@ -131,7 +131,9 @@ export const NOMES_METRICAS: Record<string, string> = {
   top_contributor_share:       'Concentração (top dev)',
   contributor_distribution:    'Distribuição por dev',
   code_churn_weekly_avg:       'Code Churn semanal',
-  open_issues_repository_total:'Issues abertas (total)',
+  open_issues_repositorio_total:'Total de issues abertas',
+  most_active_branch_name:     'Branch mais ativa',
+  most_active_branch_days:     'Dias sem commits na branch',
 };
 
 /* ── Categorias de desperdício ──────────────── */

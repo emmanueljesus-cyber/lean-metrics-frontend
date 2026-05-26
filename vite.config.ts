@@ -9,10 +9,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main:         resolve(__dirname, 'index.html'),
-        dashboard:    resolve(__dirname, 'dashboard.html'),
-        relatorio:    resolve(__dirname, 'relatorio.html'),
-        quickReport:  resolve(__dirname, 'quick-report.html'),
+        main:            resolve(__dirname, 'index.html'),
+        painel:          resolve(__dirname, 'painel.html'),
+        relatorio:       resolve(__dirname, 'relatorio.html'),
+        relatorioRapido: resolve(__dirname, 'relatorio-rapido.html'),
       },
     },
   },

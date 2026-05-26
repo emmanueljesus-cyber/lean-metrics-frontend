@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — GitHub Lean Metrics</title>
+  <title>Painel — GitHub Lean Metrics</title>
   <meta name="description" content="Gerencie seus repositórios e acesse análises Lean de cada um." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="/src/style.css" />
@@ -20,12 +20,12 @@
         Lean<span style="color: var(--color-acento);">Metrics</span>
       </a>
       <div class="hidden md:flex items-center gap-1">
-        <a href="/quick-report.html"
+        <a href="/relatorio-rapido.html"
            class="px-3 py-1.5 rounded-lg text-sm font-medium"
            style="color: var(--color-texto-suave);">Análise Rápida</a>
-        <a href="/dashboard.html"
+        <a href="/painel.html"
            class="px-3 py-1.5 rounded-lg text-sm font-medium"
-           style="color: var(--color-acento); background: var(--color-acento-suave);">Dashboard</a>
+           style="color: var(--color-acento); background: var(--color-acento-suave);">Painel</a>
       </div>
       <div class="flex items-center gap-3">
         <span id="nav-usuario"></span>
@@ -43,7 +43,7 @@
     <!-- Cabeçalho da página -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
       <div>
-        <h1 class="text-3xl font-extrabold tracking-tight mb-1">Dashboard</h1>
+        <h1 class="text-3xl font-extrabold tracking-tight mb-1">Painel</h1>
         <p id="subtitulo-usuario" style="color: var(--color-texto-suave); font-size: 0.9rem;">
           Carregando...
         </p>
@@ -57,7 +57,7 @@
 
     <!-- Área principal: lista de repositórios -->
     <div id="area-repositorios" class="min-h-48">
-      <!-- Preenchido por dashboard.ts -->
+      <!-- Preenchido por painel.ts -->
     </div>
 
   </main>
@@ -150,6 +150,6 @@
   </div>
 
   <div id="area-toast"></div>
-  <script type="module" src="/src/dashboard.ts"></script>
+  <script type="module" src="/src/painel.ts"></script>
 </body>
 </html>

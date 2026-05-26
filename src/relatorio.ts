@@ -5,15 +5,15 @@
 
 import './style.css';
 import { Chart, registerables } from 'chart.js';
-import { exigirAutenticacao, atualizarNavbarUsuario, mostrarToast } from './auth';
+import { exigirAutenticacao, atualizarNavbarUsuario, mostrarToast } from './autenticacao';
 import { api, ErroApiHTTP } from './api';
 import {
   obterIdDaUrl, formatarData, formatarValorMetrica, horasParaTexto, htmlErro, inicializarIcones,
-} from './utils';
+} from './utilitarios';
 import {
   NOMES_METRICAS, NOMES_CATEGORIAS,
   type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade,
-} from './types';
+} from './tipos';
 
 Chart.register(...registerables);
 
@@ -47,7 +47,7 @@ function renderizarCabecalho(relatorio: RelatorioRepositorio, nomeRepo: string):
   const cabecalho = document.getElementById('cabecalho-relatorio')!;
   cabecalho.innerHTML = `
     <div class="flex items-center gap-2 text-sm mb-3" style="color: var(--color-texto-suave);">
-      <a href="/dashboard.html" style="color: var(--color-texto-suave);">Dashboard</a>
+      <a href="/painel.html" style="color: var(--color-texto-suave);">Painel</a>
       <span>›</span>
       <span>${nomeRepo}</span>
       <span>›</span>
@@ -58,7 +58,7 @@ function renderizarCabecalho(relatorio: RelatorioRepositorio, nomeRepo: string):
       <div class="flex-1 min-w-[250px]">
         <h1 class="text-3xl font-extrabold tracking-tight mb-1" style="color: var(--color-texto);">${nomeRepo}</h1>
         <p class="text-sm" style="color: var(--color-texto-suave);">
-          Gerado em ${formatarData(relatorio.generated_at)}
+          Gerado em ${formatarData(relatorio.gerado_em)}
           · ${relatorio.metrics.length} métricas · ${relatorio.waste_signals.length} sinais de desperdício
         </p>
         
@@ -90,22 +90,60 @@ function renderizarCabecalho(relatorio: RelatorioRepositorio, nomeRepo: string):
   inicializarIcones();
 }
 
+const METRICS_ICONS: Record<string, { icon: string; colorClass: string }> = {
+  lead_time_pr_hours:          { icon: 'clock',       colorClass: 'text-indigo-400' },
+  cycle_time_issue_hours:      { icon: 'rotate-cw',   colorClass: 'text-blue-400' },
+  waiting_time_pr_hours:       { icon: 'hourglass',   colorClass: 'text-purple-400' },
+  wip_open_pull_requests:      { icon: 'activity',    colorClass: 'text-amber-400' },
+  wip_open_issues:             { icon: 'activity',    colorClass: 'text-amber-400' },
+  abandoned_issues_count:      { icon: 'alert-circle', colorClass: 'text-amber-500' },
+  throughput_30d:              { icon: 'zap',         colorClass: 'text-yellow-400' },
+  commit_velocity_daily:       { icon: 'trending-up', colorClass: 'text-yellow-500' },
+  days_since_last_commit:      { icon: 'calendar',    colorClass: 'text-gray-400' },
+  defect_rate:                 { icon: 'bug',         colorClass: 'text-rose-400' },
+  rework_fix_commit_ratio:     { icon: 'layers',      colorClass: 'text-emerald-400' },
+  chaotic_commit_ratio:        { icon: 'alert-triangle', colorClass: 'text-rose-500' },
+  rejected_pr_ratio:           { icon: 'alert-circle', colorClass: 'text-rose-300' },
+  top_contributor_share:       { icon: 'users',       colorClass: 'text-teal-400' },
+  active_contributors_30d:     { icon: 'users',       colorClass: 'text-teal-400' },
+  contributor_distribution:    { icon: 'users',       colorClass: 'text-teal-500' },
+  code_churn_weekly_avg:       { icon: 'code',        colorClass: 'text-cyan-400' },
+  most_active_branch_name:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
+  most_active_branch_days:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
+  total_commits_sampled:       { icon: 'database',    colorClass: 'text-slate-400' },
+  total_prs_sampled:           { icon: 'git-pull-request', colorClass: 'text-slate-400' },
+  open_issues_repository_total:{ icon: 'hash',        colorClass: 'text-slate-400' },
+};
+
 function htmlCardMetrica(metrica: ValorMetrica, delay: number): string {
   const nome = NOMES_METRICAS[metrica.name] ?? metrica.name;
-  const valor = formatarValorMetrica(metrica.value, metrica.unit);
-  const isNulo = metrica.value === null || metrica.value === undefined;
+  let valor = formatarValorMetrica(metrica.value, metrica.unit);
+  let isNulo = metrica.value === null || metrica.value === undefined;
+
+  // Ajuste especial para exibir o nome da branch ativa quando o valor e nulo
+  if (metrica.name === 'most_active_branch_name' && metrica.extra && metrica.extra.branch_name) {
+    valor = String(metrica.extra.branch_name);
+    isNulo = false;
+  }
+
+  const cfg = METRICS_ICONS[metrica.name] ?? { icon: 'info', colorClass: 'text-[#00c896]' };
+  const iconeHtml = `<i data-lucide="${cfg.icon}" class="w-5 h-5 ${cfg.colorClass}"></i>`;
 
   return `
-    <div class="glass-card p-5 flex flex-col gap-2 animar-entrar"
-         style="animation-delay: ${delay}s; cursor: default;"
+    <div class="glass-card p-5 flex flex-col justify-between gap-4 animar-entrar relative group cursor-help w-full"
+         style="animation-delay: ${delay}s; min-height: 120px;"
+         data-tooltip="${metrica.description}"
          onmouseover="this.style.borderColor='var(--color-borda-hover)'; this.style.transform='translateY(-2px)'"
          onmouseout="this.style.borderColor='var(--color-borda)'; this.style.transform=''">
-      <p class="text-xs font-semibold uppercase tracking-widest"
-         style="color: var(--color-texto-suave);">${nome}</p>
+      <div class="flex items-start justify-between gap-2 w-full">
+        <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-texto-suave);">${nome}</p>
+        <span class="flex-shrink-0 flex items-center justify-center p-1 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-borda);">
+          ${iconeHtml}
+        </span>
+      </div>
       <p class="font-extrabold" style="font-size: 2rem; letter-spacing: -0.03em; line-height: 1; color: ${isNulo ? 'var(--color-texto-fraco)' : 'var(--color-acento)'};">
         ${isNulo ? '—' : valor}
       </p>
-      <p class="text-xs" style="color: var(--color-texto-suave); line-height: 1.5;">${metrica.description}</p>
     </div>
   `;
 }
@@ -277,9 +315,16 @@ function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
     'top_contributor_share', 'code_churn_weekly_avg', 'days_since_last_commit',
   ];
 
+  const metricasFiltradas = relatorio.metrics.filter(m => 
+    m.name !== 'contributor_distribution' &&
+    m.name !== 'total_commits_sampled' &&
+    m.name !== 'total_prs_sampled' &&
+    m.name !== 'open_issues_repositorio_total'
+  );
+
   const metricasOrdenadas = [
-    ...metricasDestaque.map(n => relatorio.metrics.find(m => m.name === n)).filter(Boolean) as ValorMetrica[],
-    ...relatorio.metrics.filter(m => !metricasDestaque.includes(m.name)),
+    ...metricasDestaque.map(n => metricasFiltradas.find(m => m.name === n)).filter(Boolean) as ValorMetrica[],
+    ...metricasFiltradas.filter(m => !metricasDestaque.includes(m.name)),
   ];
 
   const temSinais     = relatorio.waste_signals.length > 0;
@@ -368,7 +413,7 @@ function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
     <!-- Rodapé do relatório -->
     <div class="text-center py-8" style="border-top: 1px solid var(--color-borda); margin-top: 2rem;">
       <p class="text-sm" style="color: var(--color-texto-suave);">
-        Relatório gerado em ${formatarData(relatorio.generated_at)}
+        Relatório gerado em ${formatarData(relatorio.gerado_em)}
         · Dados coletados via <strong style="color: var(--color-texto);">GitHub REST API</strong>
         · Amostra: ${valorOuNull(relatorio, 'total_commits_sampled') ?? '—'} commits,
           ${valorOuNull(relatorio, 'total_prs_sampled') ?? '—'} PRs

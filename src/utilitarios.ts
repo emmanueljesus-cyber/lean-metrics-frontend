@@ -2,7 +2,7 @@
  * utils.ts — Funções utilitárias: formatação, spinners, estados de UI
  */
 
-import type { Severidade } from './types';
+import type { Severidade } from './tipos';
 import {
   createIcons,
   BarChart3,
@@ -35,6 +35,13 @@ import {
   ArrowLeft,
   GitBranch,
   GraduationCap,
+  Hourglass,
+  Calendar,
+  TrendingUp,
+  AlertCircle,
+  Database,
+  GitPullRequest,
+  Hash,
 } from 'lucide';
 
 export function inicializarIcones(): void {
@@ -70,6 +77,13 @@ export function inicializarIcones(): void {
       ArrowLeft,
       GitBranch,
       GraduationCap,
+      Hourglass,
+      Calendar,
+      TrendingUp,
+      AlertCircle,
+      Database,
+      GitPullRequest,
+      Hash,
     }
   });
 }

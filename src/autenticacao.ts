@@ -2,16 +2,16 @@
  * auth.ts — Utilitários de autenticação, sessão e notificações (toast)
  */
 
-import './theme';
+import './tema';
 import { api, ErroApiHTTP } from './api';
-import type { UsuarioPerfil } from './types';
-import { inicializarIcones } from './utils';
+import type { UsuarioPerfil } from './tipos';
+import { inicializarIcones } from './utilitarios';
 
 const API_URL_COMPLETA = import.meta.env.VITE_API_URL 
   ? (import.meta.env.VITE_API_URL.endsWith('/') ? import.meta.env.VITE_API_URL.slice(0, -1) : import.meta.env.VITE_API_URL) + '/api/v1' 
   : 'http://localhost:8000/api/v1';
 
-const URL_LOGIN_GITHUB = `${API_URL_COMPLETA}/auth/github/login`;
+const URL_LOGIN_GITHUB = `${API_URL_COMPLETA}/autenticacao/github/entrar`;
 
 // ── Login / Logout ─────────────────────────────────────────────────
 
@@ -66,20 +66,20 @@ export function atualizarNavbarUsuario(usuario: UsuarioPerfil): void {
   const container = document.getElementById('nav-usuario');
   if (!container) return;
 
-  if (usuario.avatar_url) {
+  if (usuario.url_avatar) {
     container.innerHTML = `
       <img
-        src="${usuario.avatar_url}"
-        alt="${usuario.username}"
-        title="${usuario.username}"
+        src="${usuario.url_avatar}"
+        alt="${usuario.nome_usuario}"
+        title="${usuario.nome_usuario}"
         class="w-8 h-8 rounded-full border-2 border-white/10 object-cover"
       />
     `;
   } else {
-    const inicial = (usuario.username[0] ?? '?').toUpperCase();
+    const inicial = (usuario.nome_usuario[0] ?? '?').toUpperCase();
     container.innerHTML = `
       <div
-        title="${usuario.username}"
+        title="${usuario.nome_usuario}"
         class="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-sm font-semibold"
         style="color: var(--color-texto-suave);"
       >

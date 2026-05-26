@@ -3,8 +3,8 @@
  */
 
 import './style.css';
-import { iniciarLoginGitHub, buscarUsuarioAtual, atualizarNavbarUsuario, aplicarEstadoAuth } from './auth';
-import { inicializarIcones } from './utils';
+import { iniciarLoginGitHub, buscarUsuarioAtual, atualizarNavbarUsuario, aplicarEstadoAuth } from './autenticacao';
+import { inicializarIcones } from './utilitarios';
 
 const METRICAS: Array<{ icone: string; titulo: string; descricao: string }> = [
   { icone: '<i data-lucide="clock" class="w-8 h-8 text-indigo-400"></i>', titulo: 'Lead Time',             descricao: 'Tempo médio entre a abertura de uma PR e o merge. Mede a velocidade de entrega.' },
