@@ -12,12 +12,11 @@ import {
 } from './utilitarios';
 import { NOMES_METRICAS, NOMES_CATEGORIAS, type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade } from './tipos';
 
-import { converterRelatorio } from './graficos/dados';
+import { converterRelatorio, type DadosDashboard } from './graficos/dados';
 import { exportarCSV, exportarJSON, exportarPNG } from './graficos/exportar';
-import { renderTempoCiclo } from './graficos/charts/tempo-ciclo';
-import { renderWIP } from './graficos/charts/wip';
-import { renderBarraH } from './graficos/charts/barra-horizontal';
-import { renderCommitVel } from './graficos/charts/commit-vel';
+import { renderComparativo } from './graficos/charts/comparativo';
+import { renderDonut } from './graficos/charts/donut';
+import ApexCharts from 'apexcharts';
 
 // ── Exemplos pré-definidos ─────────────────────────────────────────
 
@@ -278,6 +277,14 @@ let relatorioDados: RelatorioRepositorio | null = null;
 let graficosRenderizados = false;
 let eventosTabsConfigurados = false;
 
+function metricaPorNome(relatorio: RelatorioRepositorio, nome: string): ValorMetrica | undefined {
+  return relatorio.metrics.find(m => m.name === nome);
+}
+
+function valorOuNull(relatorio: RelatorioRepositorio, nome: string): number | null {
+  return metricaPorNome(relatorio, nome)?.value ?? null;
+}
+
 function alternarTab(aba: 'relatorio' | 'graficos'): void {
   const tabRelatorio = document.getElementById('conteudo-tab-relatorio')!;
   const tabGraficos  = document.getElementById('conteudo-tab-graficos')!;
@@ -326,28 +333,332 @@ function alternarTab(aba: 'relatorio' | 'graficos'): void {
   }
 }
 
-function renderizarDashboardGraficos(relatorio: RelatorioRepositorio): void {
-  const dados = converterRelatorio(relatorio);
+// ── Lógica de Metas e Lean Score ───────────────────────────────────
 
-  // Preencher KPIs
-  const kpisContainer = document.getElementById('grade-kpis');
-  if (kpisContainer) {
-    kpisContainer.innerHTML = dados.kpis.map(k => `
-      <div class="g-kpi-card">
-        <span class="g-kpi-label">${k.icone} ${k.label}</span>
-        <span class="g-kpi-value" style="color:${k.cor}">${k.valor}</span>
-        <span class="g-kpi-sub">${k.sub}</span>
-      </div>
-    `).join('');
+interface MetasConfig {
+  leadTime: number;
+  reviewTime: number;
+  wip: number;
+  defectRate: number;
+}
+
+function obterMetas(repoName: string): MetasConfig {
+  const key = `metas_${repoName}`;
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      // Ignora erro
+    }
+  }
+  return {
+    leadTime: 120,    // 5 dias
+    reviewTime: 24,   // 24 horas
+    wip: 10,
+    defectRate: 5     // 5%
+  };
+}
+
+function salvarMetas(repoName: string, metas: MetasConfig): void {
+  const key = `metas_${repoName}`;
+  localStorage.setItem(key, JSON.stringify(metas));
+}
+
+function calcularSubScore(atual: number | null, meta: number): number {
+  if (atual === null || atual === undefined) return 100;
+  if (atual <= meta) return 100;
+  return Math.max(0, Math.round(100 - ((atual - meta) / meta) * 100));
+}
+
+function calcularLeanScore(metas: MetasConfig): {
+  leanScore: number;
+  scoreLeadTime: number;
+  scoreReview: number;
+  scoreWIP: number;
+  scoreDefectRate: number;
+} {
+  const leadTimeVal = valorOuNull(relatorioDados!, 'lead_time_pr_hours');
+  const reviewTimeVal = valorOuNull(relatorioDados!, 'waiting_time_pr_hours');
+  const wipPRs = valorOuNull(relatorioDados!, 'wip_open_pull_requests') ?? 0;
+  const wipIssues = valorOuNull(relatorioDados!, 'wip_open_issues') ?? 0;
+  const wipVal = wipPRs + wipIssues;
+  const defectRateVal = (valorOuNull(relatorioDados!, 'defect_rate') ?? 0) * 100;
+
+  const scoreLeadTime = calcularSubScore(leadTimeVal, metas.leadTime);
+  const scoreReview = calcularSubScore(reviewTimeVal, metas.reviewTime);
+  const scoreWIP = calcularSubScore(wipVal, metas.wip);
+  const scoreDefectRate = calcularSubScore(defectRateVal, metas.defectRate);
+
+  const leanScore = Math.round((scoreLeadTime + scoreReview + scoreWIP + scoreDefectRate) / 4);
+
+  return {
+    leanScore,
+    scoreLeadTime,
+    scoreReview,
+    scoreWIP,
+    scoreDefectRate
+  };
+}
+
+// ── Renderização das Sub-Abas ─────────────────────────────────────
+
+function renderizarSubtabMetas(dados: DadosDashboard): void {
+  const metas = obterMetas(dados.repositorio);
+
+  // Preencher inputs
+  const inputLead = document.getElementById('input-meta-lead-time') as HTMLInputElement | null;
+  const inputReview = document.getElementById('input-meta-review-time') as HTMLInputElement | null;
+  const inputWIP = document.getElementById('input-meta-wip') as HTMLInputElement | null;
+  const inputDefeitos = document.getElementById('input-meta-defeitos') as HTMLInputElement | null;
+
+  if (inputLead) inputLead.value = String(metas.leadTime);
+  if (inputReview) inputReview.value = String(metas.reviewTime);
+  if (inputWIP) inputWIP.value = String(metas.wip);
+  if (inputDefeitos) inputDefeitos.value = String(metas.defectRate);
+
+  // Calcular pontuações
+  const scoreInfo = calcularLeanScore(metas);
+
+  // Atualizar Badges de Metas
+  const badgeLead = document.getElementById('badge-meta-lead-time');
+  const badgeReview = document.getElementById('badge-meta-review-time');
+  const badgeWip = document.getElementById('badge-meta-wip');
+  const badgeDefeitos = document.getElementById('badge-meta-defeitos');
+
+  if (badgeLead) badgeLead.textContent = `Meta: ${metas.leadTime}h`;
+  if (badgeReview) badgeReview.textContent = `Meta: ${metas.reviewTime}h`;
+  if (badgeWip) badgeWip.textContent = `Meta: ${metas.wip} itens`;
+  if (badgeDefeitos) badgeDefeitos.textContent = `Meta: ${metas.defectRate}%`;
+
+  // Renderizar Gauge do Lean Score
+  const containerGauge = document.getElementById('chart-lean-score');
+  if (containerGauge) {
+    containerGauge.innerHTML = '';
+    const isLightMode = document.documentElement.classList.contains('light');
+    const scoreColor = scoreInfo.leanScore >= 80 ? '#00c896' : scoreInfo.leanScore >= 50 ? '#ffb84d' : '#ff4d6d';
+    const gaugeChart = new ApexCharts(containerGauge, {
+      chart: {
+        type: 'radialBar',
+        height: 180,
+        sparkline: { enabled: true }
+      },
+      series: [scoreInfo.leanScore],
+      colors: [scoreColor],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: '65%' },
+          dataLabels: {
+            show: true,
+            name: { show: false },
+            value: {
+              show: true,
+              fontSize: '28px',
+              fontWeight: 'bold',
+              offsetY: 8,
+              color: isLightMode ? '#0f172a' : '#e8edf5'
+            }
+          }
+        }
+      },
+      labels: ['Índice Lean']
+    });
+    gaugeChart.render();
   }
 
-  // Renderizar gráficos
-  renderTempoCiclo( 'chart-tempo-ciclo',   dados.tempo_ciclo);
-  renderWIP(        'chart-wip',            dados.wip);
-  renderBarraH(     'chart-qualidade',      dados.qualidade,       'Qualidade', 260);
-  renderBarraH(     'chart-throughput',     dados.throughput,      'Fluxo',     220);
-  renderBarraH(     'chart-contribuidores', dados.contribuidores,  'Contribuidores', 240);
-  renderCommitVel(  'chart-commit-vel',     dados.commit_vel);
+  // Renderizar gráficos comparativos
+  const leadTimeVal = valorOuNull(relatorioDados!, 'lead_time_pr_hours') ?? 0;
+  const reviewTimeVal = valorOuNull(relatorioDados!, 'waiting_time_pr_hours') ?? 0;
+  const wipPRs = valorOuNull(relatorioDados!, 'wip_open_pull_requests') ?? 0;
+  const wipIssues = valorOuNull(relatorioDados!, 'wip_open_issues') ?? 0;
+  const wipVal = wipPRs + wipIssues;
+  const defectRateVal = (valorOuNull(relatorioDados!, 'defect_rate') ?? 0) * 100;
+
+  const containerLead = document.getElementById('chart-meta-lead-time');
+  if (containerLead) containerLead.innerHTML = '';
+  renderComparativo('chart-meta-lead-time', 'Lead Time', +leadTimeVal.toFixed(1), metas.leadTime, 'h', true);
+
+  const containerReview = document.getElementById('chart-meta-review-time');
+  if (containerReview) containerReview.innerHTML = '';
+  renderComparativo('chart-meta-review-time', 'Waiting Time', +reviewTimeVal.toFixed(1), metas.reviewTime, 'h', true);
+
+  const containerWIP = document.getElementById('chart-meta-wip');
+  if (containerWIP) containerWIP.innerHTML = '';
+  renderComparativo('chart-meta-wip', 'WIP Total', wipVal, metas.wip, 'itens', true);
+
+  const containerDefeitos = document.getElementById('chart-meta-defeitos');
+  if (containerDefeitos) containerDefeitos.innerHTML = '';
+  renderComparativo('chart-meta-defeitos', 'Taxa de Defeitos', +defectRateVal.toFixed(1), metas.defectRate, '%', true);
+
+  // Vincular ação do botão de salvar
+  const btnSalvar = document.getElementById('btn-salvar-metas');
+  if (btnSalvar) {
+    btnSalvar.onclick = () => {
+      const novaLead = +(inputLead?.value ?? metas.leadTime);
+      const novaReview = +(inputReview?.value ?? metas.reviewTime);
+      const novoWip = +(inputWIP?.value ?? metas.wip);
+      const novaDefeitos = +(inputDefeitos?.value ?? metas.defectRate);
+
+      const novasMetas = {
+        leadTime: Math.max(1, novaLead),
+        reviewTime: Math.max(1, novaReview),
+        wip: Math.max(1, novoWip),
+        defectRate: Math.max(0, Math.min(100, novaDefeitos))
+      };
+
+      salvarMetas(dados.repositorio, novasMetas);
+      mostrarToast('Metas atualizadas com sucesso!', 'sucesso');
+      renderizarSubtabMetas(dados);
+    };
+  }
+}
+
+function renderizarSubtabDistribuicao(dados: DadosDashboard): void {
+  const chartDesperdicios = document.getElementById('chart-dist-desperdicios');
+  if (chartDesperdicios) chartDesperdicios.innerHTML = '';
+  renderDonut(
+    'chart-dist-desperdicios',
+    dados.distribuicao_desperdicios.labels,
+    dados.distribuicao_desperdicios.valores,
+    undefined,
+    ['#ff4d6d', '#ffb84d', '#4dcfff', '#8b5cf6', '#00c896']
+  );
+
+  const chartPRs = document.getElementById('chart-dist-prs');
+  if (chartPRs) chartPRs.innerHTML = '';
+  renderDonut(
+    'chart-dist-prs',
+    dados.distribuicao_prs.labels,
+    dados.distribuicao_prs.valores,
+    undefined,
+    ['#ffb84d', '#00c896']
+  );
+
+  const chartIssues = document.getElementById('chart-dist-issues');
+  if (chartIssues) chartIssues.innerHTML = '';
+  renderDonut(
+    'chart-dist-issues',
+    dados.distribuicao_issues.labels,
+    dados.distribuicao_issues.valores,
+    undefined,
+    ['#ff4d6d', '#4dcfff']
+  );
+
+  const chartCommitsDev = document.getElementById('chart-dist-commits-dev');
+  if (chartCommitsDev) chartCommitsDev.innerHTML = '';
+  renderDonut(
+    'chart-dist-commits-dev',
+    dados.distribuicao_commits_dev.labels,
+    dados.distribuicao_commits_dev.valores
+  );
+
+  const chartCommitsAbsoluto = document.getElementById('chart-dist-commits-absoluto');
+  if (chartCommitsAbsoluto) {
+    chartCommitsAbsoluto.innerHTML = '';
+    const isLightMode = document.documentElement.classList.contains('light');
+    const colorText = isLightMode ? '#475569' : '#8b9ab3';
+
+    const colChart = new ApexCharts(chartCommitsAbsoluto, {
+      chart: {
+        type: 'bar',
+        height: 280,
+        background: 'transparent',
+        foreColor: colorText,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        toolbar: { show: false }
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          columnWidth: '45%',
+          distributed: true
+        }
+      },
+      series: [{
+        name: 'Commits',
+        data: dados.commits_absolutos_dev.valores
+      }],
+      xaxis: {
+        categories: dados.commits_absolutos_dev.categorias,
+        labels: { style: { colors: colorText, fontSize: '11px' } }
+      },
+      yaxis: {
+        title: {
+          text: 'Quantidade de Commits',
+          style: { color: colorText, fontWeight: '500' }
+        },
+        labels: { style: { colors: colorText, fontSize: '11px' } }
+      },
+      colors: ['#00c896', '#4dcfff', '#8b5cf6', '#ffb84d', '#ff4d6d', '#10b981'],
+      dataLabels: {
+        enabled: true,
+        style: {
+          fontSize: '11px',
+          fontWeight: '700',
+          colors: [isLightMode ? '#ffffff' : '#070d1a']
+        }
+      },
+      tooltip: {
+        theme: isLightMode ? 'light' : 'dark',
+        style: { fontFamily: "'Inter', system-ui, sans-serif" },
+        y: { formatter: (val: number) => `${val} commits` }
+      },
+      legend: { show: false }
+    });
+    colChart.render();
+  }
+}
+
+function alternarSubtab(subaba: 'metas' | 'distribuicao' | 'historico'): void {
+  const tabMetas = document.getElementById('subtab-conteudo-metas')!;
+  const tabDist  = document.getElementById('subtab-conteudo-distribuicao')!;
+  const tabHist  = document.getElementById('subtab-conteudo-historico')!;
+
+  const btnMetas = document.getElementById('btn-subtab-metas')!;
+  const btnDist  = document.getElementById('btn-subtab-distribuicao')!;
+  const btnHist  = document.getElementById('btn-subtab-historico')!;
+
+  // Hide all
+  tabMetas.style.display = 'none';
+  tabDist.style.display  = 'none';
+  tabHist.style.display  = 'none';
+
+  // Deselect all buttons
+  [btnMetas, btnDist, btnHist].forEach(btn => {
+    btn.style.color = 'var(--color-texto-suave)';
+    btn.style.borderColor = 'transparent';
+  });
+
+  const dados = converterRelatorio(relatorioDados!);
+
+  // Show/Select requested
+  if (subaba === 'metas') {
+    tabMetas.style.display = '';
+    btnMetas.style.color = 'var(--color-acento)';
+    btnMetas.style.borderColor = 'var(--color-acento)';
+    renderizarSubtabMetas(dados);
+  } else if (subaba === 'distribuicao') {
+    tabDist.style.display = '';
+    btnDist.style.color = 'var(--color-acento)';
+    btnDist.style.borderColor = 'var(--color-acento)';
+    renderizarSubtabDistribuicao(dados);
+  } else if (subaba === 'historico') {
+    tabHist.style.display = '';
+    btnHist.style.color = 'var(--color-acento)';
+    btnHist.style.borderColor = 'var(--color-acento)';
+    
+    // Call to Action button config
+    const btnCTA = document.getElementById('btn-cta-cadastrar');
+    if (btnCTA) {
+      btnCTA.onclick = () => {
+        iniciarLoginGitHub();
+      };
+    }
+  }
+}
+
+function renderizarDashboardGraficos(relatorio: RelatorioRepositorio): void {
+  const dados = converterRelatorio(relatorio);
 
   // Vincular exportações
   const btnCSV = document.getElementById('btn-export-csv');
@@ -358,7 +669,8 @@ function renderizarDashboardGraficos(relatorio: RelatorioRepositorio): void {
   if (btnJSON) btnJSON.onclick = () => exportarJSON(dados);
   if (btnPNG) btnPNG.onclick = () => exportarPNG('conteudo-tab-graficos');
 
-  inicializarIcones();
+  // Trigger active sub-tab (default: metas)
+  alternarSubtab('metas');
 }
 
 function configurarEventosTabs(): void {
@@ -366,6 +678,11 @@ function configurarEventosTabs(): void {
 
   document.getElementById('btn-tab-relatorio')?.addEventListener('click', () => alternarTab('relatorio'));
   document.getElementById('btn-tab-graficos')?.addEventListener('click', () => alternarTab('graficos'));
+
+  // Eventos de sub-abas de gráficos
+  document.getElementById('btn-subtab-metas')?.addEventListener('click', () => alternarSubtab('metas'));
+  document.getElementById('btn-subtab-distribuicao')?.addEventListener('click', () => alternarSubtab('distribuicao'));
+  document.getElementById('btn-subtab-historico')?.addEventListener('click', () => alternarSubtab('historico'));
 
   const navGraficos = document.getElementById('nav-link-graficos');
   const navRelatorio = document.getElementById('nav-link-relatorio');

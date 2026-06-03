@@ -106,6 +106,11 @@ export interface DadosDashboard {
   commit_vel:    DadosRadialSimples; // velocidade de commits
   sinais:        { categoria: string; severidade: string; mensagem: string }[];
   metricas_raw:  ValorMetrica[];
+  distribuicao_desperdicios: DadosDonut;
+  distribuicao_prs:          DadosDonut;
+  distribuicao_issues:       DadosDonut;
+  distribuicao_commits_dev:  DadosDonut;
+  commits_absolutos_dev:     DadosColuna;
 }
 
 // ── Helper: extrai valor numérico de uma métrica ───────────────────
@@ -257,6 +262,83 @@ export function converterRelatorio(rel: RelatorioRepositorio): DadosDashboard {
     mensagem:   s.message,
   }));
 
+  // ── Distribuição de Desperdícios ──
+  const contagemSinais: Record<string, number> = {};
+  (rel.waste_signals ?? []).forEach(s => {
+    const cat = s.category;
+    contagemSinais[cat] = (contagemSinais[cat] || 0) + 1;
+  });
+  const labelsDesperdicios = Object.keys(contagemSinais);
+  const valoresDesperdicios = Object.values(contagemSinais);
+  if (labelsDesperdicios.length === 0) {
+    labelsDesperdicios.push('Sem Desperdícios');
+    valoresDesperdicios.push(1);
+  }
+  const distribuicao_desperdicios: DadosDonut = {
+    labels: labelsDesperdicios,
+    valores: valoresDesperdicios,
+  };
+
+  // ── Distribuição de PRs (Abertas/WIP vs Fechadas/Mergeadas) ──
+  const totalPRs = val(m, 'total_prs_sampled') ?? 0;
+  const openPRs = wipPRs ?? 0;
+  const closedPRs = Math.max(0, totalPRs - openPRs);
+  const distribuicao_prs: DadosDonut = {
+    labels: ['Abertas (WIP)', 'Fechadas/Mergeadas'],
+    valores: [openPRs, closedPRs],
+  };
+
+  // ── Distribuição de Issues (Abertas/WIP vs Fechadas/Resolvidas) ──
+  const totalIssues = val(m, 'total_issues_sampled') ?? 0;
+  const openIssues = wipIssues ?? 0;
+  const closedIssues = Math.max(0, totalIssues - openIssues);
+  const distribuicao_issues: DadosDonut = {
+    labels: ['Abertas (WIP)', 'Fechadas/Resolvidas'],
+    valores: [openIssues, closedIssues],
+  };
+
+  // ── Distribuição de Commits por Dev (Proporção %) ──
+  const contDistMetric = m.find(metric => metric.name === 'contributor_distribution');
+  const distExtra = contDistMetric?.extra as Record<string, number> | null | undefined;
+  const labelsCommitsDev: string[] = [];
+  const valoresCommitsDev: number[] = [];
+
+  if (distExtra && typeof distExtra === 'object') {
+    Object.entries(distExtra).forEach(([autor, ratio]) => {
+      labelsCommitsDev.push(autor);
+      valoresCommitsDev.push(+(ratio * 100).toFixed(1));
+    });
+  }
+  if (labelsCommitsDev.length === 0) {
+    labelsCommitsDev.push('Sem Contribuidores');
+    valoresCommitsDev.push(100);
+  }
+  const distribuicao_commits_dev: DadosDonut = {
+    labels: labelsCommitsDev,
+    valores: valoresCommitsDev,
+  };
+
+  // ── Commits Absolutos por Dev ──
+  const totalCommits = val(m, 'total_commits_sampled') ?? 0;
+  const valoresAbsolutos: number[] = [];
+  const labelsAbsolutos: string[] = [];
+
+  if (distExtra && typeof distExtra === 'object') {
+    Object.entries(distExtra).forEach(([autor, ratio]) => {
+      labelsAbsolutos.push(autor);
+      valoresAbsolutos.push(Math.round(ratio * totalCommits));
+    });
+  }
+  if (labelsAbsolutos.length === 0) {
+    labelsAbsolutos.push('Sem Commits');
+    valoresAbsolutos.push(0);
+  }
+  const commits_absolutos_dev: DadosColuna = {
+    categorias: labelsAbsolutos,
+    valores: valoresAbsolutos,
+    unidade: 'commits',
+  };
+
   return {
     repositorio:    rel.full_name,
     gerado_em:      rel.gerado_em,
@@ -269,5 +351,10 @@ export function converterRelatorio(rel: RelatorioRepositorio): DadosDashboard {
     commit_vel:     commitVelGauge,
     sinais,
     metricas_raw:   m,
+    distribuicao_desperdicios,
+    distribuicao_prs,
+    distribuicao_issues,
+    distribuicao_commits_dev,
+    commits_absolutos_dev,
   };
 }

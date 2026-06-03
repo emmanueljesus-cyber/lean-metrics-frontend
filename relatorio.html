@@ -102,6 +102,7 @@
     </div>
 
     <!-- Tab 2: Dashboard de Gráficos -->
+    <!-- Tab 2: Dashboard de Gráficos -->
     <div id="conteudo-tab-graficos" style="display: none;">
       <!-- Barra de Exportação -->
       <div class="flex justify-between items-center gap-4 mb-6 flex-wrap">
@@ -124,68 +125,186 @@
         </div>
       </div>
 
-      <!-- Grade de KPIs -->
-      <p class="g-section-label">Indicadores-chave de Desempenho</p>
-      <div id="grade-kpis" class="g-kpi-grid" style="margin-bottom: 1.5rem;"></div>
+      <!-- Barra de Navegação de Sub-Abas de Gráficos -->
+      <div class="flex border-b border-white/10 mb-6 gap-2" id="subtabs-container">
+        <button id="btn-subtab-metas" class="px-3 py-1.5 border-b-2 font-semibold text-xs cursor-pointer transition-all duration-200"
+                style="color: var(--color-acento); border-color: var(--color-acento); background: transparent; border-top: none; border-left: none; border-right: none;">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 mr-1.5 inline-block align-middle"></i>Metas &amp; Lean Score
+        </button>
+        <button id="btn-subtab-distribuicao" class="px-3 py-1.5 border-b-2 font-semibold text-xs cursor-pointer transition-all duration-200"
+                style="color: var(--color-texto-suave); border-color: transparent; background: transparent; border-top: none; border-left: none; border-right: none;">
+          <i data-lucide="pie-chart" class="w-3.5 h-3.5 mr-1.5 inline-block align-middle"></i>Distribuições
+        </button>
+        <button id="btn-subtab-historico" class="px-3 py-1.5 border-b-2 font-semibold text-xs cursor-pointer transition-all duration-200"
+                style="color: var(--color-texto-suave); border-color: transparent; background: transparent; border-top: none; border-left: none; border-right: none;">
+          <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1.5 inline-block align-middle"></i>Comparação Histórica
+        </button>
+      </div>
 
-      <!-- Gráficos -->
-      <div class="g-charts-grid g-grid-2 mb-5">
-        <div class="g-chart-card">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="clock" class="w-4 h-4 mr-1.5 inline-block align-middle text-emerald-400"></i>Tempo de Ciclo</span>
-            <span class="g-chart-badge">Lead · Cycle · Wait</span>
+      <!-- Conteúdo Sub-Aba 1: Metas & Lean Score -->
+      <div id="subtab-conteudo-metas">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <!-- Lean Score Big Card -->
+          <div class="glass-card p-6 flex flex-col items-center justify-center text-center md:col-span-1">
+            <h3 class="text-sm font-semibold uppercase tracking-wider mb-2" style="color: var(--color-texto-suave);">Índice Lean</h3>
+            <div id="lean-score-gauge" class="relative w-40 h-40 flex items-center justify-center">
+              <div id="chart-lean-score"></div>
+            </div>
+            <p class="text-xs mt-2 px-4" style="color: var(--color-texto-suave);" id="lean-score-mensagem">
+              Calculado com base no cumprimento das metas definidas ao lado.
+            </p>
           </div>
-          <p class="g-chart-desc">Tempo médio de cada etapa do fluxo. Valores altos indicam gargalos.</p>
-          <div id="chart-tempo-ciclo"></div>
+          
+          <!-- Metas Form / Config Card -->
+          <div class="glass-card p-6 md:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-bold flex items-center gap-1.5" style="color: var(--color-texto);">
+                <i data-lucide="sliders" class="w-4 h-4 text-[#00c896]"></i> Ajustar Metas de Desempenho
+              </h3>
+              <button id="btn-salvar-metas" class="g-btn g-btn-primary py-1.5 px-3 text-xs">
+                <i data-lucide="award" class="w-3.5 h-3.5 mr-1 inline-block align-middle"></i> Salvar e Aplicar
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold" style="color: var(--color-texto-suave);" for="input-meta-lead-time">
+                  Meta Lead Time PR (horas)
+                </label>
+                <input id="input-meta-lead-time" type="number" min="1" step="1"
+                       class="rounded-lg px-3 py-2 text-sm outline-none"
+                       style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold" style="color: var(--color-texto-suave);" for="input-meta-review-time">
+                  Meta Waiting Time PR (horas)
+                </label>
+                <input id="input-meta-review-time" type="number" min="1" step="1"
+                       class="rounded-lg px-3 py-2 text-sm outline-none"
+                       style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold" style="color: var(--color-texto-suave);" for="input-meta-wip">
+                  Meta WIP Total (PRs + Issues)
+                </label>
+                <input id="input-meta-wip" type="number" min="1" step="1"
+                       class="rounded-lg px-3 py-2 text-sm outline-none"
+                       style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold" style="color: var(--color-texto-suave);" for="input-meta-defeitos">
+                  Meta Taxa de Defeitos (%)
+                </label>
+                <input id="input-meta-defeitos" type="number" min="0" max="100" step="1"
+                       class="rounded-lg px-3 py-2 text-sm outline-none"
+                       style="background: rgba(255,255,255,0.04); border: 1px solid var(--color-borda); color: var(--color-texto);" />
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="g-chart-card">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="folder" class="w-4 h-4 mr-1.5 inline-block align-middle text-amber-400"></i>WIP — Work In Progress</span>
-            <span class="g-chart-badge">Lean</span>
+        
+        <!-- Grid de Gráficos de Metas (Comparativo) -->
+        <p class="g-section-label mb-3">Comparativo de Metas</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div class="g-chart-card">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="clock" class="w-4 h-4 mr-1 inline-block align-middle text-emerald-400"></i>Lead Time de PRs</span>
+              <span class="text-xs text-slate-400" id="badge-meta-lead-time"></span>
+            </div>
+            <div id="chart-meta-lead-time"></div>
           </div>
-          <p class="g-chart-desc">Quantidade de trabalho simultâneo aberto. WIP alto indica acúmulo.</p>
-          <div id="chart-wip"></div>
+          <div class="g-chart-card">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="hourglass" class="w-4 h-4 mr-1 inline-block align-middle text-amber-400"></i>Waiting Time (Review)</span>
+              <span class="text-xs text-slate-400" id="badge-meta-review-time"></span>
+            </div>
+            <div id="chart-meta-review-time"></div>
+          </div>
+          <div class="g-chart-card">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="folder" class="w-4 h-4 mr-1 inline-block align-middle text-blue-400"></i>WIP (PRs + Issues)</span>
+              <span class="text-xs text-slate-400" id="badge-meta-wip"></span>
+            </div>
+            <div id="chart-meta-wip"></div>
+          </div>
+          <div class="g-chart-card">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="bug" class="w-4 h-4 mr-1 inline-block align-middle text-rose-400"></i>Taxa de Defeitos</span>
+              <span class="text-xs text-slate-400" id="badge-meta-defeitos"></span>
+            </div>
+            <div id="chart-meta-defeitos"></div>
+          </div>
         </div>
       </div>
 
-      <div class="g-charts-grid g-grid-2 mb-5">
-        <div class="g-chart-card">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="bug" class="w-4 h-4 mr-1.5 inline-block align-middle text-rose-400"></i>Qualidade do Código</span>
-            <span class="g-chart-badge">Defeitos · Retrabalho · Churn</span>
+      <!-- Conteúdo Sub-Aba 2: Distribuições -->
+      <div id="subtab-conteudo-distribuicao" style="display: none;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="g-chart-card">
+            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i> Distribuição de Desperdícios
+            </h4>
+            <div id="chart-dist-desperdicios"></div>
           </div>
-          <p class="g-chart-desc">Indicadores de qualidade. Valores altos sinalizam dívida técnica.</p>
-          <div id="chart-qualidade"></div>
+          <div class="g-chart-card">
+            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
+              <i data-lucide="git-pull-request" class="w-4 h-4 text-[#00c896]"></i> Pull Requests (Abertas vs Fechadas)
+            </h4>
+            <div id="chart-dist-prs"></div>
+          </div>
+          <div class="g-chart-card">
+            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
+              <i data-lucide="rotate-cw" class="w-4 h-4 text-sky-400"></i> Issues (Abertas vs Fechadas)
+            </h4>
+            <div id="chart-dist-issues"></div>
+          </div>
+          <div class="g-chart-card">
+            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
+              <i data-lucide="users" class="w-4 h-4 text-purple-400"></i> Distribuição de Commits por Dev (%)
+            </h4>
+            <div id="chart-dist-commits-dev"></div>
+          </div>
         </div>
-
-        <div class="g-chart-card" style="display:flex; flex-direction:column; gap:0">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="zap" class="w-4 h-4 mr-1.5 inline-block align-middle text-amber-400"></i>Velocidade de Commits</span>
-            <span class="g-chart-badge">commits/dia</span>
-          </div>
-          <p class="g-chart-desc">Média diária de commits nos últimos 30 dias.</p>
-          <div id="chart-commit-vel" style="flex:1"></div>
+        
+        <div class="g-chart-card mb-6">
+          <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
+            <i data-lucide="hash" class="w-4 h-4 text-amber-400"></i> Volume de Commits por Desenvolvedor (Absoluto)
+          </h4>
+          <div id="chart-dist-commits-absoluto"></div>
         </div>
       </div>
 
-      <div class="g-charts-grid g-grid-2">
-        <div class="g-chart-card">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="trending-up" class="w-4 h-4 mr-1.5 inline-block align-middle text-purple-400"></i>Throughput &amp; Fluxo</span>
-            <span class="g-chart-badge">PRs · Issues</span>
+      <!-- Conteúdo Sub-Aba 3: Comparação Histórica -->
+      <div id="subtab-conteudo-historico" style="display: none;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="historico-grid-content">
+          <div class="g-chart-card">
+            <div id="chart-hist-lead-time"></div>
           </div>
-          <p class="g-chart-desc">Volume de entregas e indicadores de fluxo nos últimos 30 dias.</p>
-          <div id="chart-throughput"></div>
+          <div class="g-chart-card">
+            <div id="chart-hist-cycle-time"></div>
+          </div>
+          <div class="g-chart-card">
+            <div id="chart-hist-throughput"></div>
+          </div>
+          <div class="g-chart-card">
+            <div id="chart-hist-churn"></div>
+          </div>
+          <div class="g-chart-card">
+            <div id="chart-hist-retrabalho"></div>
+          </div>
+          <div class="g-chart-card">
+            <div id="chart-hist-desperdicios"></div>
+          </div>
         </div>
-
-        <div class="g-chart-card">
-          <div class="g-chart-header">
-            <span class="g-chart-title"><i data-lucide="users" class="w-4 h-4 mr-1.5 inline-block align-middle text-sky-400"></i>Contribuidores</span>
-            <span class="g-chart-badge">Atividade · Concentração</span>
+        
+        <!-- Placeholder se sem histórico -->
+        <div id="historico-status" style="display: none;" class="py-16 text-center">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-500/10 text-slate-400 mx-auto mb-4">
+            <i data-lucide="database" class="w-6 h-6"></i>
           </div>
-          <p class="g-chart-desc">Saúde da equipe: concentração de conhecimento e ritmo de commits.</p>
-          <div id="chart-contribuidores"></div>
+          <h3 class="text-base font-bold mb-1" style="color: var(--color-texto);">Dados históricos insuficientes</h3>
+          <p class="text-xs max-w-xs mx-auto" style="color: var(--color-texto-suave);">
+            Gere novos relatórios para este repositório para construir o histórico de evolução ao longo do tempo.
+          </p>
         </div>
       </div>
     </div>
