@@ -4,12 +4,20 @@
  */
 
 import './style.css';
+import './graficos/graficos.css';
 import { buscarUsuarioAtual, atualizarNavbarUsuario, aplicarEstadoAuth, iniciarLoginGitHub, mostrarToast } from './autenticacao';
 import { api, ErroApiHTTP } from './api';
 import {
   formatarData, formatarValorMetrica, htmlCarregando, htmlErro, setBtnCarregando, inicializarIcones, extrairGithubUrl,
 } from './utilitarios';
 import { NOMES_METRICAS, NOMES_CATEGORIAS, type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade } from './tipos';
+
+import { converterRelatorio } from './graficos/dados';
+import { exportarCSV, exportarJSON, exportarPNG } from './graficos/exportar';
+import { renderTempoCiclo } from './graficos/charts/tempo-ciclo';
+import { renderWIP } from './graficos/charts/wip';
+import { renderBarraH } from './graficos/charts/barra-horizontal';
+import { renderCommitVel } from './graficos/charts/commit-vel';
 
 // ── Exemplos pré-definidos ─────────────────────────────────────────
 
@@ -265,6 +273,122 @@ function renderizarResultado(relatorio: RelatorioRepositorio): void {
   areaResultado.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ── Estado Global do Relatório e Abas (Análise Rápida) ──────────────
+let relatorioDados: RelatorioRepositorio | null = null;
+let graficosRenderizados = false;
+let eventosTabsConfigurados = false;
+
+function alternarTab(aba: 'relatorio' | 'graficos'): void {
+  const tabRelatorio = document.getElementById('conteudo-tab-relatorio')!;
+  const tabGraficos  = document.getElementById('conteudo-tab-graficos')!;
+  const btnRelatorio = document.getElementById('btn-tab-relatorio')!;
+  const btnGraficos  = document.getElementById('btn-tab-graficos')!;
+
+  if (aba === 'relatorio') {
+    tabRelatorio.style.display = '';
+    tabGraficos.style.display  = 'none';
+
+    btnRelatorio.style.color = 'var(--color-acento)';
+    btnRelatorio.style.borderColor = 'var(--color-acento)';
+    btnGraficos.style.color = 'var(--color-texto-suave)';
+    btnGraficos.style.borderColor = 'transparent';
+
+    const navGraficos = document.getElementById('nav-link-graficos');
+    const navRelatorio = document.getElementById('nav-link-relatorio');
+    if (navGraficos && navRelatorio) {
+      navGraficos.style.color = 'var(--color-texto-suave)';
+      navGraficos.style.background = 'transparent';
+      navRelatorio.style.color = 'var(--color-acento)';
+      navRelatorio.style.background = 'var(--color-acento-suave)';
+    }
+  } else {
+    tabRelatorio.style.display = 'none';
+    tabGraficos.style.display  = '';
+
+    btnRelatorio.style.color = 'var(--color-texto-suave)';
+    btnRelatorio.style.borderColor = 'transparent';
+    btnGraficos.style.color = 'var(--color-acento)';
+    btnGraficos.style.borderColor = 'var(--color-acento)';
+
+    const navGraficos = document.getElementById('nav-link-graficos');
+    const navRelatorio = document.getElementById('nav-link-relatorio');
+    if (navGraficos && navRelatorio) {
+      navGraficos.style.color = 'var(--color-acento)';
+      navGraficos.style.background = 'var(--color-acento-suave)';
+      navRelatorio.style.color = 'var(--color-texto-suave)';
+      navRelatorio.style.background = 'transparent';
+    }
+
+    if (!graficosRenderizados && relatorioDados) {
+      renderizarDashboardGraficos(relatorioDados);
+      graficosRenderizados = true;
+    }
+  }
+}
+
+function renderizarDashboardGraficos(relatorio: RelatorioRepositorio): void {
+  const dados = converterRelatorio(relatorio);
+
+  // Preencher KPIs
+  const kpisContainer = document.getElementById('grade-kpis');
+  if (kpisContainer) {
+    kpisContainer.innerHTML = dados.kpis.map(k => `
+      <div class="g-kpi-card">
+        <span class="g-kpi-label">${k.icone} ${k.label}</span>
+        <span class="g-kpi-value" style="color:${k.cor}">${k.valor}</span>
+        <span class="g-kpi-sub">${k.sub}</span>
+      </div>
+    `).join('');
+  }
+
+  // Renderizar gráficos
+  renderTempoCiclo( 'chart-tempo-ciclo',   dados.tempo_ciclo);
+  renderWIP(        'chart-wip',            dados.wip);
+  renderBarraH(     'chart-qualidade',      dados.qualidade,       'Qualidade', 260);
+  renderBarraH(     'chart-throughput',     dados.throughput,      'Fluxo',     220);
+  renderBarraH(     'chart-contribuidores', dados.contribuidores,  'Contribuidores', 240);
+  renderCommitVel(  'chart-commit-vel',     dados.commit_vel);
+
+  // Vincular exportações
+  const btnCSV = document.getElementById('btn-export-csv');
+  const btnJSON = document.getElementById('btn-export-json');
+  const btnPNG = document.getElementById('btn-export-png');
+
+  if (btnCSV) btnCSV.onclick = () => exportarCSV(dados);
+  if (btnJSON) btnJSON.onclick = () => exportarJSON(dados);
+  if (btnPNG) btnPNG.onclick = () => exportarPNG('conteudo-tab-graficos');
+
+  inicializarIcones();
+}
+
+function configurarEventosTabs(): void {
+  if (eventosTabsConfigurados) return;
+
+  document.getElementById('btn-tab-relatorio')?.addEventListener('click', () => alternarTab('relatorio'));
+  document.getElementById('btn-tab-graficos')?.addEventListener('click', () => alternarTab('graficos'));
+
+  const navGraficos = document.getElementById('nav-link-graficos');
+  const navRelatorio = document.getElementById('nav-link-relatorio');
+  if (navGraficos) {
+    navGraficos.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (relatorioDados) {
+        alternarTab('graficos');
+      } else {
+        mostrarToast('Gere um relatório primeiro para visualizar os gráficos.', 'aviso');
+      }
+    });
+  }
+  if (navRelatorio) {
+    navRelatorio.addEventListener('click', (e) => {
+      e.preventDefault();
+      alternarTab('relatorio');
+    });
+  }
+
+  eventosTabsConfigurados = true;
+}
+
 // ── Execução da análise ────────────────────────────────────────────
 
 async function executarAnalise(): Promise<void> {
@@ -280,12 +404,30 @@ async function executarAnalise(): Promise<void> {
     return;
   }
 
+  // Oculta abas antes de carregar
+  document.getElementById('wrapper-resultado')!.style.display = 'none';
+
   areaResultado.innerHTML = htmlCarregando(`Analisando ${owner}/${repo}... (pode levar alguns segundos)`);
   setBtnCarregando(btnAnalisar, true);
 
   try {
     const relatorio = await api.relatorios.rapido(owner, repo, token);
+    relatorioDados = relatorio;
+    graficosRenderizados = false;
+
+    // Exibe abas e conteúdo
+    document.getElementById('wrapper-resultado')!.style.display = '';
+    document.getElementById('tabs-container')!.style.display = 'flex';
+    configurarEventosTabs();
+
+    alternarTab('relatorio'); // Sempre reseta para a aba texto primeiro
     renderizarResultado(relatorio);
+
+    // Se o parâmetro tab=graficos estiver na URL, exibe os gráficos direto
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'graficos') {
+      alternarTab('graficos');
+    }
   } catch (err) {
     let mensagem = 'Falha ao gerar o relatório. Verifique o owner/repo e tente novamente.';
 
@@ -300,6 +442,9 @@ async function executarAnalise(): Promise<void> {
     }
 
     mostrarToast(mensagem, 'erro');
+    // Exibe o erro dentro de areaResultado, mas garantindo que o wrapper seja visível sem as abas
+    document.getElementById('wrapper-resultado')!.style.display = '';
+    document.getElementById('tabs-container')!.style.display = 'none';
     areaResultado.innerHTML = htmlErro(mensagem);
     inicializarIcones();
   } finally {
@@ -323,6 +468,9 @@ async function iniciar(): Promise<void> {
 
   // Preenche exemplos
   renderizarExemplos();
+
+  // Configura interceptação básica de links do menu
+  configurarEventosTabs();
 
   // Pré-preenche pela URL (ex: ?proprietario=torvalds&repositorio=linux)
   const params = new URLSearchParams(window.location.search);

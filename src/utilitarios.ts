@@ -5,11 +5,15 @@
 import type { Severidade } from './tipos';
 import {
   createIcons,
+  BarChart2,
   BarChart3,
   Play,
   Search,
   Key,
   Folder,
+  File,
+  FileText,
+  Image,
   Activity,
   Clock,
   Sliders,
@@ -47,11 +51,15 @@ import {
 export function inicializarIcones(): void {
   createIcons({
     icons: {
+      BarChart2,
       BarChart3,
       Play,
       Search,
       Key,
       Folder,
+      File,
+      FileText,
+      Image,
       Activity,
       Clock,
       Sliders,

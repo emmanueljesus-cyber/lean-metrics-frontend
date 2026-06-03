@@ -13,6 +13,7 @@ export default defineConfig({
         painel:          resolve(__dirname, 'painel.html'),
         relatorio:       resolve(__dirname, 'relatorio.html'),
         relatorioRapido: resolve(__dirname, 'relatorio-rapido.html'),
+        graficos:        resolve(__dirname, 'graficos.html'),
       },
     },
   },

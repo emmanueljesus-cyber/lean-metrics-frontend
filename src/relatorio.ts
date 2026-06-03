@@ -1,37 +1,26 @@
 /**
  * relatorio.ts — Lógica da página de Relatório Lean detalhado
- * Carrega métricas do repositório cadastrado e exibe gráficos com Chart.js
+ * Carrega métricas do repositório cadastrado e exibe gráficos interativos via abas.
  */
 
 import './style.css';
-import { Chart, registerables } from 'chart.js';
+import './graficos/graficos.css';
 import { exigirAutenticacao, atualizarNavbarUsuario, mostrarToast } from './autenticacao';
 import { api, ErroApiHTTP } from './api';
 import {
-  obterIdDaUrl, formatarData, formatarValorMetrica, horasParaTexto, htmlErro, inicializarIcones,
+  obterIdDaUrl, formatarData, formatarValorMetrica, htmlErro, inicializarIcones,
 } from './utilitarios';
 import {
   NOMES_METRICAS, NOMES_CATEGORIAS,
   type RelatorioRepositorio, type ValorMetrica, type SinalDesperdicio, type Severidade,
 } from './tipos';
 
-Chart.register(...registerables);
-
-// ── Config de cor do Chart.js ──────────────────────────────────────
-
-const isLight = document.documentElement.classList.contains('light');
-
-const CHART_DEFAULTS = {
-  cor:       '#00c896',
-  corAlfa:   'rgba(0,200,150,0.15)',
-  corGrid:   isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255,255,255,0.05)',
-  corTexto:  isLight ? '#475569' : '#8b9ab3',
-};
-
-Chart.defaults.color             = CHART_DEFAULTS.corTexto;
-Chart.defaults.borderColor       = CHART_DEFAULTS.corGrid;
-Chart.defaults.font.family       = "'Inter', system-ui, sans-serif";
-Chart.defaults.plugins.legend.display = false;
+import { converterRelatorio } from './graficos/dados';
+import { exportarCSV, exportarJSON, exportarPNG } from './graficos/exportar';
+import { renderTempoCiclo } from './graficos/charts/tempo-ciclo';
+import { renderWIP } from './graficos/charts/wip';
+import { renderBarraH } from './graficos/charts/barra-horizontal';
+import { renderCommitVel } from './graficos/charts/commit-vel';
 
 // ── Helpers de renderização ───────────────────────────────────────
 
@@ -199,115 +188,96 @@ function htmlSinalDesperdicio(sinal: SinalDesperdicio, delay: number): string {
   `;
 }
 
-// ── Gráficos ───────────────────────────────────────────────────────
+// ── Estado Global do Relatório e Abas ──────────────────────────────
+let relatorioDados: RelatorioRepositorio | null = null;
+let graficosRenderizados = false;
 
-function criarGraficoLeadTime(relatorio: RelatorioRepositorio): void {
-  const metrica = metricaPorNome(relatorio, 'lead_time_pr_hours');
-  const serie   = (metrica?.extra as { per_pr?: Array<{ id: string; value: number }> } | null)?.per_pr;
-  const canvas  = document.getElementById('grafico-lead-time') as HTMLCanvasElement | null;
-  if (!canvas || !serie || serie.length === 0) return;
+function alternarTab(aba: 'relatorio' | 'graficos'): void {
+  const tabRelatorio = document.getElementById('conteudo-tab-relatorio')!;
+  const tabGraficos  = document.getElementById('conteudo-tab-graficos')!;
+  const btnRelatorio = document.getElementById('btn-tab-relatorio')!;
+  const btnGraficos  = document.getElementById('btn-tab-graficos')!;
 
-  new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels:   serie.map(p => `PR #${p.id}`),
-      datasets: [{
-        label:           'Lead Time (horas)',
-        data:            serie.map(p => p.value),
-        backgroundColor: CHART_DEFAULTS.corAlfa,
-        borderColor:     CHART_DEFAULTS.cor,
-        borderWidth:     2,
-        borderRadius:    6,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { tooltip: { callbacks: { label: ctx => ` ${horasParaTexto(ctx.raw as number)}` } } },
-      scales: {
-        x: { grid: { color: CHART_DEFAULTS.corGrid }, ticks: { maxRotation: 45, color: CHART_DEFAULTS.corTexto } },
-        y: { grid: { color: CHART_DEFAULTS.corGrid }, ticks: { color: CHART_DEFAULTS.corTexto } },
-      },
-    },
-  });
+  if (aba === 'relatorio') {
+    tabRelatorio.style.display = '';
+    tabGraficos.style.display  = 'none';
+
+    btnRelatorio.style.color = 'var(--color-acento)';
+    btnRelatorio.style.borderColor = 'var(--color-acento)';
+    btnGraficos.style.color = 'var(--color-texto-suave)';
+    btnGraficos.style.borderColor = 'transparent';
+
+    const navGraficos = document.getElementById('nav-link-graficos');
+    const navRelatorio = document.getElementById('nav-link-relatorio');
+    if (navGraficos && navRelatorio) {
+      navGraficos.style.color = 'var(--color-texto-suave)';
+      navGraficos.style.background = 'transparent';
+      navRelatorio.style.color = 'var(--color-acento)';
+      navRelatorio.style.background = 'var(--color-acento-suave)';
+    }
+  } else {
+    tabRelatorio.style.display = 'none';
+    tabGraficos.style.display  = '';
+
+    btnRelatorio.style.color = 'var(--color-texto-suave)';
+    btnRelatorio.style.borderColor = 'transparent';
+    btnGraficos.style.color = 'var(--color-acento)';
+    btnGraficos.style.borderColor = 'var(--color-acento)';
+
+    const navGraficos = document.getElementById('nav-link-graficos');
+    const navRelatorio = document.getElementById('nav-link-relatorio');
+    if (navGraficos && navRelatorio) {
+      navGraficos.style.color = 'var(--color-acento)';
+      navGraficos.style.background = 'var(--color-acento-suave)';
+      navRelatorio.style.color = 'var(--color-texto-suave)';
+      navRelatorio.style.background = 'transparent';
+    }
+
+    if (!graficosRenderizados && relatorioDados) {
+      renderizarDashboardGraficos(relatorioDados);
+      graficosRenderizados = true;
+    }
+  }
 }
 
-function criarGraficoThroughput(relatorio: RelatorioRepositorio): void {
-  const metrica = metricaPorNome(relatorio, 'throughput_30d');
-  const serie   = (metrica?.extra as { weekly?: Array<{ date: string; value: number }> } | null)?.weekly;
-  const canvas  = document.getElementById('grafico-throughput') as HTMLCanvasElement | null;
-  if (!canvas || !serie || serie.length === 0) return;
+function renderizarDashboardGraficos(relatorio: RelatorioRepositorio): void {
+  const dados = converterRelatorio(relatorio);
 
-  new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels:   serie.map(s => s.date),
-      datasets: [{
-        label:           'PRs mergeadas',
-        data:            serie.map(s => s.value),
-        borderColor:     CHART_DEFAULTS.cor,
-        backgroundColor: CHART_DEFAULTS.corAlfa,
-        fill:            true,
-        tension:         0.4,
-        pointBackgroundColor: CHART_DEFAULTS.cor,
-        pointRadius:     4,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { grid: { color: CHART_DEFAULTS.corGrid }, ticks: { color: CHART_DEFAULTS.corTexto } },
-        y: { grid: { color: CHART_DEFAULTS.corGrid }, ticks: { color: CHART_DEFAULTS.corTexto, stepSize: 1 } },
-      },
-    },
-  });
-}
+  // Preencher KPIs
+  const kpisContainer = document.getElementById('grade-kpis');
+  if (kpisContainer) {
+    kpisContainer.innerHTML = dados.kpis.map(k => `
+      <div class="g-kpi-card">
+        <span class="g-kpi-label">${k.icone} ${k.label}</span>
+        <span class="g-kpi-value" style="color:${k.cor}">${k.valor}</span>
+        <span class="g-kpi-sub">${k.sub}</span>
+      </div>
+    `).join('');
+  }
 
-function criarGraficoDistribuicao(relatorio: RelatorioRepositorio): void {
-  const metrica  = metricaPorNome(relatorio, 'contributor_distribution');
-  const dist     = metrica?.extra as Record<string, number> | null;
-  const canvas   = document.getElementById('grafico-distribuicao') as HTMLCanvasElement | null;
-  if (!canvas || !dist || Object.keys(dist).length === 0) return;
+  // Renderizar gráficos
+  renderTempoCiclo( 'chart-tempo-ciclo',   dados.tempo_ciclo);
+  renderWIP(        'chart-wip',            dados.wip);
+  renderBarraH(     'chart-qualidade',      dados.qualidade,       'Qualidade', 260);
+  renderBarraH(     'chart-throughput',     dados.throughput,      'Fluxo',     220);
+  renderBarraH(     'chart-contribuidores', dados.contribuidores,  'Contribuidores', 240);
+  renderCommitVel(  'chart-commit-vel',     dados.commit_vel);
 
-  const entradas = Object.entries(dist).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  // Vincular exportações
+  const btnCSV = document.getElementById('btn-export-csv');
+  const btnJSON = document.getElementById('btn-export-json');
+  const btnPNG = document.getElementById('btn-export-png');
 
-  const CORES_PIZZA = [
-    '#00c896','#4dcfff','#a78bfa','#f472b6',
-    '#fb923c','#facc15','#34d399','#818cf8',
-  ];
+  if (btnCSV) btnCSV.onclick = () => exportarCSV(dados);
+  if (btnJSON) btnJSON.onclick = () => exportarJSON(dados);
+  if (btnPNG) btnPNG.onclick = () => exportarPNG('conteudo-tab-graficos');
 
-  new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels:   entradas.map(([nome]) => nome),
-      datasets: [{
-        data:            entradas.map(([, v]) => Math.round(v * 100)),
-        backgroundColor: CORES_PIZZA,
-        borderColor:     '#070d1a',
-        borderWidth:     3,
-        hoverOffset:     8,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display:  true,
-          position: 'right',
-          labels:   { color: CHART_DEFAULTS.corTexto, font: { size: 11 }, padding: 12 },
-        },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` } },
-      },
-    },
-  });
+  inicializarIcones();
 }
 
 // ── Renderização completa ─────────────────────────────────────────
 
 function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
-  // Métricas-chave para cards do topo
   const metricasDestaque = [
     'lead_time_pr_hours', 'cycle_time_issue_hours', 'waiting_time_pr_hours',
     'wip_open_pull_requests', 'wip_open_issues', 'throughput_30d',
@@ -332,10 +302,6 @@ function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
     const ordem: Record<Severidade, number> = { high: 0, medium: 1, low: 2, alta: 0, média: 1, baixa: 2 };
     return ordem[a.severity] - ordem[b.severity];
   });
-
-  const temLeadTime   = !!(metricaPorNome(relatorio, 'lead_time_pr_hours')?.extra as { per_pr?: unknown[] } | null)?.per_pr?.length;
-  const temThroughput = !!(metricaPorNome(relatorio, 'throughput_30d')?.extra as { weekly?: unknown[] } | null)?.weekly?.length;
-  const temDist       = !!Object.keys((metricaPorNome(relatorio, 'contributor_distribution')?.extra ?? {}) as object).length;
 
   document.getElementById('area-relatorio')!.innerHTML = `
     <!-- Sinais de desperdício -->
@@ -371,45 +337,6 @@ function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
       </div>
     </section>
 
-    <!-- Gráficos -->
-    ${temLeadTime || temThroughput || temDist ? `
-    <section class="mb-10">
-      <h2 class="text-xl font-bold mb-5 flex items-center gap-1.5"><i data-lucide="activity" class="w-5 h-5 text-[#00c896]"></i> Gráficos</h2>
-      <div class="grid gap-6 ${temLeadTime && temThroughput ? 'md:grid-cols-2' : ''}">
-
-        ${temLeadTime ? `
-        <div class="glass-card p-5">
-          <h3 class="font-semibold text-sm mb-4" style="color: var(--color-texto-suave);">
-            Lead Time por PR (horas)
-          </h3>
-          <div style="height: 260px; position: relative;">
-            <canvas id="grafico-lead-time"></canvas>
-          </div>
-        </div>` : ''}
-
-        ${temThroughput ? `
-        <div class="glass-card p-5">
-          <h3 class="font-semibold text-sm mb-4" style="color: var(--color-texto-suave);">
-            Throughput semanal (PRs mergeadas)
-          </h3>
-          <div style="height: 260px; position: relative;">
-            <canvas id="grafico-throughput"></canvas>
-          </div>
-        </div>` : ''}
-
-        ${temDist ? `
-        <div class="glass-card p-5 ${temLeadTime && temThroughput ? 'md:col-span-2' : ''}">
-          <h3 class="font-semibold text-sm mb-4" style="color: var(--color-texto-suave);">
-            Distribuição de commits por desenvolvedor (%)
-          </h3>
-          <div style="height: 280px; position: relative;">
-            <canvas id="grafico-distribuicao"></canvas>
-          </div>
-        </div>` : ''}
-
-      </div>
-    </section>` : ''}
-
     <!-- Rodapé do relatório -->
     <div class="text-center py-8" style="border-top: 1px solid var(--color-borda); margin-top: 2rem;">
       <p class="text-sm" style="color: var(--color-texto-suave);">
@@ -421,11 +348,7 @@ function renderizarRelatorio(relatorio: RelatorioRepositorio): void {
     </div>
   `;
 
-  // Renderiza gráficos depois que o DOM está pronto
   requestAnimationFrame(() => {
-    criarGraficoLeadTime(relatorio);
-    criarGraficoThroughput(relatorio);
-    criarGraficoDistribuicao(relatorio);
     inicializarIcones();
   });
 }
@@ -438,26 +361,58 @@ async function iniciar(): Promise<void> {
 
   const repositorioId = obterIdDaUrl('id');
   if (!repositorioId) {
-    document.getElementById('area-relatorio')!.innerHTML = htmlErro(
+    document.getElementById('area-status-relatorio')!.innerHTML = htmlErro(
       'ID do repositório inválido na URL. Volte ao dashboard.',
     );
     return;
   }
 
+  // Intercepta e gerencia os links da navbar para funcionar via abas na mesma página
+  const navGraficos = document.getElementById('nav-link-graficos');
+  const navRelatorio = document.getElementById('nav-link-relatorio');
+  if (navGraficos) {
+    navGraficos.addEventListener('click', (e) => {
+      e.preventDefault();
+      alternarTab('graficos');
+    });
+  }
+  if (navRelatorio) {
+    navRelatorio.addEventListener('click', (e) => {
+      e.preventDefault();
+      alternarTab('relatorio');
+    });
+  }
+
   try {
-    // Busca o repositório para obter o nome
     const repo     = await api.repositorios.buscar(repositorioId);
     const relatorio = await api.relatorios.gerar(repositorioId);
 
+    relatorioDados = relatorio;
+
+    // Remove tela de carregamento e mostra as abas e conteúdo
+    document.getElementById('area-status-relatorio')!.style.display = 'none';
+    document.getElementById('tabs-container')!.style.display = 'flex';
+    document.getElementById('conteudo-tab-relatorio')!.style.display = '';
+
     renderizarCabecalho(relatorio, repo.full_name);
     renderizarRelatorio(relatorio);
+
+    // Eventos dos botões de abas
+    document.getElementById('btn-tab-relatorio')?.addEventListener('click', () => alternarTab('relatorio'));
+    document.getElementById('btn-tab-graficos')?.addEventListener('click', () => alternarTab('graficos'));
+
+    // Verifica parâmetro 'tab' na URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'graficos') {
+      alternarTab('graficos');
+    }
   } catch (err) {
     const mensagem = err instanceof ErroApiHTTP
       ? (err.status === 404 ? 'Repositório não encontrado ou sem permissão de acesso.' : err.message)
       : 'Falha ao gerar o relatório. Tente novamente.';
 
     mostrarToast(mensagem, 'erro');
-    document.getElementById('area-relatorio')!.innerHTML = htmlErro(mensagem);
+    document.getElementById('area-status-relatorio')!.innerHTML = htmlErro(mensagem);
     inicializarIcones();
   }
 }

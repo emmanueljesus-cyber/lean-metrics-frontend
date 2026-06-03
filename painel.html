@@ -21,11 +21,18 @@
       </a>
       <div class="hidden md:flex items-center gap-1">
         <a href="/relatorio-rapido.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium"
-           style="color: var(--color-texto-suave);">Análise Rápida</a>
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)';this.style.background='transparent'">Análise Rápida</a>
         <a href="/painel.html"
            class="px-3 py-1.5 rounded-lg text-sm font-medium"
            style="color: var(--color-acento); background: var(--color-acento-suave);">Painel</a>
+        <a href="/graficos.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)';this.style.background='transparent'">Gráficos</a>
       </div>
       <div class="flex items-center gap-3">
         <span id="nav-usuario"></span>

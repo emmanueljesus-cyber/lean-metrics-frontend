@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gráficos de Desempenho — GitHub Lean Metrics</title>
+  <meta name="description" content="Dashboard interativo com métricas Lean: Lead Time, Cycle Time, WIP, Qualidade e Contribuidores de qualquer repositório GitHub." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/graficos/graficos.css" />
+</head>
+<body>
+
+  <!-- ── Navbar (mesmo padrão das outras páginas) ── -->
+  <nav class="sticky top-0 z-50 border-b"
+       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+
+      <!-- Logo -->
+      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
+         style="color: var(--color-texto);">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center gradient-acento"
+             style="color:#070d1a">
+          <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        </div>
+        Lean<span style="color: var(--color-acento);">Metrics</span>
+      </a>
+
+      <!-- Links de navegação -->
+      <div class="hidden md:flex items-center gap-1">
+        <a href="/relatorio-rapido.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)';this.style.background='transparent'">
+          Análise Rápida
+        </a>
+        <a href="/painel.html" data-auth="logado"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)';this.style.background='transparent'">
+          Painel
+        </a>
+        <a id="nav-link-relatorio" href="#"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+           style="display: none; color: var(--color-texto-suave);"
+           onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
+           onmouseout="this.style.color='var(--color-texto-suave)';this.style.background='transparent'">
+          Relatório
+        </a>
+        <a href="/graficos.html"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium"
+           style="color: var(--color-acento); background: var(--color-acento-suave);">
+          Gráficos
+        </a>
+      </div>
+
+      <!-- Usuário / Login -->
+      <div class="flex items-center gap-3">
+        <span id="nav-usuario"></span>
+        <a href="/painel.html" data-auth="logado"
+           class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento transition-all duration-200"
+           style="color: #070d1a; text-decoration: none;">
+          Painel
+        </a>
+        <button id="btn-entrar" data-auth="deslogado"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento cursor-pointer border-0"
+                style="color: #070d1a;">
+          Entrar com GitHub
+        </button>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ── Estado: carregando ── -->
+  <div id="estado-carregando"
+       style="display:flex; align-items:center; justify-content:center; min-height:60vh; gap:1rem; color:var(--color-texto-suave);">
+    <div class="spinner"></div>
+    <span>Buscando métricas do repositório…</span>
+  </div>
+
+  <!-- ── Estado: sem parâmetros (formulário de busca) ── -->
+  <div id="estado-busca"
+       style="display:none; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:2rem;">
+    <div class="glass-card p-8" style="max-width:500px; width:100%; animation: entrar-baixo 0.5s ease;">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-acento mb-4"
+             style="color:#070d1a">
+          <i data-lucide="bar-chart-2" class="w-7 h-7"></i>
+        </div>
+        <h1 style="font-size:1.5rem; font-weight:800; margin-bottom:.5rem">Dashboard de Gráficos</h1>
+        <p style="color:var(--color-texto-suave); font-size:.9rem">
+          Informe um repositório GitHub para visualizar as métricas Lean
+        </p>
+      </div>
+
+      <form id="form-busca" class="flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold" style="color:var(--color-texto-suave);" for="input-owner">Owner</label>
+            <input id="input-owner" type="text" placeholder="ex: torvalds" autocomplete="off"
+                   class="rounded-xl px-4 py-3 text-sm outline-none"
+                   style="background:rgba(255,255,255,0.04); border:1px solid var(--color-borda); color:var(--color-texto);"
+                   onfocus="this.style.borderColor='var(--color-acento)'"
+                   onblur="this.style.borderColor='var(--color-borda)'" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold" style="color:var(--color-texto-suave);" for="input-repo">Repositório</label>
+            <input id="input-repo" type="text" placeholder="ex: linux" autocomplete="off"
+                   class="rounded-xl px-4 py-3 text-sm outline-none"
+                   style="background:rgba(255,255,255,0.04); border:1px solid var(--color-borda); color:var(--color-texto);"
+                   onfocus="this.style.borderColor='var(--color-acento)'"
+                   onblur="this.style.borderColor='var(--color-borda)'" />
+          </div>
+        </div>
+        <button type="submit"
+                class="w-full py-3 rounded-xl font-bold text-sm gradient-acento border-0 cursor-pointer flex items-center justify-center gap-2"
+                style="color:#070d1a;">
+          <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Ver Gráficos
+        </button>
+      </form>
+
+      <div class="mt-5">
+        <p class="text-xs font-semibold uppercase tracking-widest mb-2" style="color:var(--color-texto-fraco)">Exemplos rápidos</p>
+        <div class="flex flex-wrap gap-2">
+          <a href="/graficos.html?proprietario=torvalds&repositorio=linux"
+             class="g-btn g-btn-outline">torvalds/linux</a>
+          <a href="/graficos.html?proprietario=microsoft&repositorio=vscode"
+             class="g-btn g-btn-outline">microsoft/vscode</a>
+          <a href="/graficos.html?proprietario=facebook&repositorio=react"
+             class="g-btn g-btn-outline">facebook/react</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Estado: erro ── -->
+  <div id="estado-erro"
+       style="display:none; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:2rem; gap:1rem; color:var(--color-texto-suave);">
+    <div style="font-size:3rem; opacity:.4; display:flex; justify-content:center;"><i data-lucide="alert-triangle" class="w-12 h-12 text-rose-500"></i></div>
+    <p style="font-weight:700; color:var(--color-texto); font-size:1.1rem">Não foi possível carregar os dados</p>
+    <p id="msg-erro" style="font-size:.85rem; color:#ff4d6d; max-width:400px; text-align:center"></p>
+    <div class="flex gap-3">
+      <button onclick="history.back()" class="g-btn g-btn-outline">← Voltar</button>
+      <a href="/graficos.html" class="g-btn g-btn-outline">Nova busca</a>
+      <a href="/relatorio-rapido.html" class="g-btn g-btn-primary">Análise Rápida</a>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Dashboard principal (visível apenas após carregamento)
+       ════════════════════════════════════════════════════════════ -->
+  <main class="max-w-6xl mx-auto px-6 py-10 pb-16" id="dashboard-export" style="display:none">
+
+    <!-- Cabeçalho + exportação -->
+    <div class="g-page-header">
+      <div>
+        <h1 class="g-page-title">Dashboard Lean</h1>
+        <p class="g-page-subtitle" id="subtitulo-dash">Carregando…</p>
+      </div>
+      <div class="g-export-bar">
+        <button class="g-btn g-btn-outline" id="btn-export-csv">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i> CSV
+        </button>
+        <button class="g-btn g-btn-outline" id="btn-export-json">
+          <i data-lucide="file" class="w-3.5 h-3.5"></i> JSON
+        </button>
+        <button class="g-btn g-btn-primary" id="btn-export-png">
+          <i data-lucide="image" class="w-3.5 h-3.5"></i> PNG
+        </button>
+        <a href="/relatorio-rapido.html" class="g-btn g-btn-outline">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i> Nova análise
+        </a>
+      </div>
+    </div>
+
+    <!-- ── KPIs dinâmicos ── -->
+    <p class="g-section-label">Indicadores-chave de Desempenho</p>
+    <div id="grade-kpis" class="g-kpi-grid" style="margin-bottom:1.5rem"></div>
+
+    <!-- ── Fila 1: Tempo de Ciclo + WIP ── -->
+    <div class="g-charts-grid g-grid-2" style="margin-bottom:1.25rem">
+
+      <div class="g-chart-card">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="clock" class="w-4 h-4 mr-1.5 inline-block align-middle text-emerald-400"></i>Tempo de Ciclo</span>
+          <span class="g-chart-badge">Lead · Cycle · Wait</span>
+        </div>
+        <p class="g-chart-desc">
+          Tempo médio de cada etapa do fluxo. Valores altos indicam gargalos.
+        </p>
+        <div id="chart-tempo-ciclo"></div>
+      </div>
+
+      <div class="g-chart-card">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="folder" class="w-4 h-4 mr-1.5 inline-block align-middle text-amber-400"></i>WIP — Work In Progress</span>
+          <span class="g-chart-badge">Lean</span>
+        </div>
+        <p class="g-chart-desc">
+          Quantidade de trabalho simultâneo aberto. WIP alto indica acúmulo.
+        </p>
+        <div id="chart-wip"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Fila 2: Qualidade + Commit Vel ── -->
+    <div class="g-charts-grid g-grid-2" style="margin-bottom:1.25rem">
+
+      <div class="g-chart-card">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="bug" class="w-4 h-4 mr-1.5 inline-block align-middle text-rose-400"></i>Qualidade do Código</span>
+          <span class="g-chart-badge">Defeitos · Retrabalho · Churn</span>
+        </div>
+        <p class="g-chart-desc">
+          Indicadores de qualidade. Valores altos sinalizam dívida técnica.
+        </p>
+        <div id="chart-qualidade"></div>
+      </div>
+
+      <div class="g-chart-card" style="display:flex; flex-direction:column; gap:0">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="zap" class="w-4 h-4 mr-1.5 inline-block align-middle text-amber-400"></i>Velocidade de Commits</span>
+          <span class="g-chart-badge">commits/dia</span>
+        </div>
+        <p class="g-chart-desc">
+          Média diária de commits nos últimos 30 dias.
+        </p>
+        <div id="chart-commit-vel" style="flex:1"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Fila 3: Throughput + Contribuidores ── -->
+    <div class="g-charts-grid g-grid-2" style="margin-bottom:1.25rem">
+
+      <div class="g-chart-card">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="trending-up" class="w-4 h-4 mr-1.5 inline-block align-middle text-purple-400"></i>Throughput &amp; Fluxo</span>
+          <span class="g-chart-badge">PRs · Issues</span>
+        </div>
+        <p class="g-chart-desc">
+          Volume de entregas e indicadores de fluxo nos últimos 30 dias.
+        </p>
+        <div id="chart-throughput"></div>
+      </div>
+
+      <div class="g-chart-card">
+        <div class="g-chart-header">
+          <span class="g-chart-title"><i data-lucide="users" class="w-4 h-4 mr-1.5 inline-block align-middle text-sky-400"></i>Contribuidores</span>
+          <span class="g-chart-badge">Atividade · Concentração</span>
+        </div>
+        <p class="g-chart-desc">
+          Saúde da equipe: concentração de conhecimento e ritmo de commits.
+        </p>
+        <div id="chart-contribuidores"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Sinais de Desperdício ── -->
+    <div class="g-chart-card">
+      <div class="g-chart-header">
+        <span class="g-chart-title"><i data-lucide="search" class="w-4 h-4 mr-1.5 inline-block align-middle text-indigo-400"></i>Sinais de Desperdício Lean</span>
+        <span class="g-chart-badge">Waste Signals</span>
+      </div>
+      <p class="g-chart-desc">
+        Padrões detectados automaticamente que indicam desperdício no fluxo de desenvolvimento.
+      </p>
+      <div id="lista-sinais" class="g-sinais-lista"></div>
+    </div>
+
+  </main>
+
+  <div id="area-toast"></div>
+  <script type="module" src="/src/graficos/index.ts"></script>
+</body>
+</html>

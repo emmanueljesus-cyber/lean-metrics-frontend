@@ -60,7 +60,7 @@ function injetarBotaoTema(): void {
     atualizarIcone();
     
     // Se estiver na página de relatório, recarrega a página para atualizar os gráficos perfeitamente
-    if (window.location.pathname.includes('relatorio.html')) {
+    if (window.location.pathname.includes('relatorio.html') || window.location.pathname.includes('relatorio-rapido.html')) {
       window.location.reload();
     } else {
       window.dispatchEvent(new Event('themechanged'));
