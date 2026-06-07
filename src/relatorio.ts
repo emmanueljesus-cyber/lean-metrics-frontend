@@ -21,6 +21,10 @@ import { renderComparativo } from './graficos/charts/comparativo';
 import { renderDonut } from './graficos/charts/donut';
 import { renderLinhaHistorica, renderDesperdiciosAcumulados } from './graficos/charts/linha-historica';
 import ApexCharts from 'apexcharts';
+import {
+  METRICS_ICONS, ICONES_CATEGORIA, CORES_SEV, SEV_PT,
+  obterMetas, salvarMetas, calcularLeanScore,
+} from './relatorioCompartilhado';
 
 // ── Helpers de renderização ───────────────────────────────────────
 
@@ -79,30 +83,7 @@ function renderizarCabecalho(relatorio: RelatorioRepositorio, nomeRepo: string):
   inicializarIcones();
 }
 
-const METRICS_ICONS: Record<string, { icon: string; colorClass: string }> = {
-  lead_time_pr_hours:          { icon: 'clock',       colorClass: 'text-indigo-400' },
-  cycle_time_issue_hours:      { icon: 'rotate-cw',   colorClass: 'text-blue-400' },
-  waiting_time_pr_hours:       { icon: 'hourglass',   colorClass: 'text-purple-400' },
-  wip_open_pull_requests:      { icon: 'activity',    colorClass: 'text-amber-400' },
-  wip_open_issues:             { icon: 'activity',    colorClass: 'text-amber-400' },
-  abandoned_issues_count:      { icon: 'alert-circle', colorClass: 'text-amber-500' },
-  throughput_30d:              { icon: 'zap',         colorClass: 'text-yellow-400' },
-  commit_velocity_daily:       { icon: 'trending-up', colorClass: 'text-yellow-500' },
-  days_since_last_commit:      { icon: 'calendar',    colorClass: 'text-gray-400' },
-  defect_rate:                 { icon: 'bug',         colorClass: 'text-rose-400' },
-  rework_fix_commit_ratio:     { icon: 'layers',      colorClass: 'text-emerald-400' },
-  chaotic_commit_ratio:        { icon: 'alert-triangle', colorClass: 'text-rose-500' },
-  rejected_pr_ratio:           { icon: 'alert-circle', colorClass: 'text-rose-300' },
-  top_contributor_share:       { icon: 'users',       colorClass: 'text-teal-400' },
-  active_contributors_30d:     { icon: 'users',       colorClass: 'text-teal-400' },
-  contributor_distribution:    { icon: 'users',       colorClass: 'text-teal-500' },
-  code_churn_weekly_avg:       { icon: 'code',        colorClass: 'text-cyan-400' },
-  most_active_branch_name:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
-  most_active_branch_days:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
-  total_commits_sampled:       { icon: 'database',    colorClass: 'text-slate-400' },
-  total_prs_sampled:           { icon: 'git-pull-request', colorClass: 'text-slate-400' },
-  open_issues_repository_total:{ icon: 'hash',        colorClass: 'text-slate-400' },
-};
+
 
 function htmlCardMetrica(metrica: ValorMetrica, delay: number): string {
   const nome = NOMES_METRICAS[metrica.name] ?? metrica.name;
@@ -137,34 +118,7 @@ function htmlCardMetrica(metrica: ValorMetrica, delay: number): string {
   `;
 }
 
-const ICONES_CATEGORIA: Record<string, string> = {
-  waiting:                        '<i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i>',
-  work_in_progress:               '<i data-lucide="activity" class="w-5 h-5 text-amber-400"></i>',
-  defects:                        '<i data-lucide="bug" class="w-5 h-5 text-rose-400"></i>',
-  extra_processing:               '<i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>',
-  handoff:                        '<i data-lucide="users" class="w-5 h-5 text-teal-400"></i>',
-  partially_done:                 '<i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>',
-  'Espera':                       '<i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i>',
-  'WIP excessivo':                '<i data-lucide="activity" class="w-5 h-5 text-amber-400"></i>',
-  'Defeitos / Retrabalho':        '<i data-lucide="bug" class="w-5 h-5 text-rose-400"></i>',
-  'Processamento desnecessário':  '<i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>',
-  'Centralização de trabalho':    '<i data-lucide="users" class="w-5 h-5 text-teal-400"></i>',
-  'Trabalho parcialmente feito':  '<i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>',
-};
 
-const CORES_SEV: Record<Severidade, { bg: string; borda: string; texto: string }> = {
-  high:   { bg: 'rgba(255,77,109,0.08)',  borda: 'rgba(255,77,109,0.3)',  texto: '#ff4d6d' },
-  medium: { bg: 'rgba(255,184,77,0.08)', borda: 'rgba(255,184,77,0.3)', texto: '#ffb84d' },
-  low:    { bg: 'rgba(77,207,255,0.08)', borda: 'rgba(77,207,255,0.3)', texto: '#4dcfff' },
-  alta:   { bg: 'rgba(255,77,109,0.08)',  borda: 'rgba(255,77,109,0.3)',  texto: '#ff4d6d' },
-  média:  { bg: 'rgba(255,184,77,0.08)', borda: 'rgba(255,184,77,0.3)', texto: '#ffb84d' },
-  baixa:  { bg: 'rgba(77,207,255,0.08)', borda: 'rgba(77,207,255,0.3)', texto: '#4dcfff' },
-};
-
-const SEV_PT: Record<Severidade, string> = {
-  high: 'Alta', medium: 'Média', low: 'Baixa',
-  alta: 'Alta', média: 'Média', baixa: 'Baixa'
-};
 
 function htmlSinalDesperdicio(sinal: SinalDesperdicio, delay: number): string {
   const cor   = CORES_SEV[sinal.severity];
@@ -180,7 +134,7 @@ function htmlSinalDesperdicio(sinal: SinalDesperdicio, delay: number): string {
           <span class="text-xs font-semibold uppercase tracking-wide"
                 style="color: var(--color-texto-suave);">${cat}</span>
           <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                style="background: ${cor.borda}; color: ${cor.texto};">${SEV_PT[sinal.severity]}</span>
+                style="background: ${cor.borda}; color: ${cor.cor};">${SEV_PT[sinal.severity]}</span>
         </div>
         <p class="text-sm" style="color: var(--color-texto); line-height: 1.5;">${sinal.message}</p>
       </div>
@@ -240,73 +194,7 @@ function alternarTab(aba: 'relatorio' | 'graficos'): void {
   }
 }
 
-// ── Lógica de Metas e Lean Score ───────────────────────────────────
-
-interface MetasConfig {
-  leadTime: number;
-  reviewTime: number;
-  wip: number;
-  defectRate: number;
-}
-
-function obterMetas(repoName: string): MetasConfig {
-  const key = `metas_${repoName}`;
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      // Ignora erro
-    }
-  }
-  return {
-    leadTime: 120,    // 5 dias
-    reviewTime: 24,   // 24 horas
-    wip: 10,
-    defectRate: 5     // 5%
-  };
-}
-
-function salvarMetas(repoName: string, metas: MetasConfig): void {
-  const key = `metas_${repoName}`;
-  localStorage.setItem(key, JSON.stringify(metas));
-}
-
-function calcularSubScore(atual: number | null, meta: number): number {
-  if (atual === null || atual === undefined) return 100;
-  if (atual <= meta) return 100;
-  return Math.max(0, Math.round(100 - ((atual - meta) / meta) * 100));
-}
-
-function calcularLeanScore(metas: MetasConfig): {
-  leanScore: number;
-  scoreLeadTime: number;
-  scoreReview: number;
-  scoreWIP: number;
-  scoreDefectRate: number;
-} {
-  const leadTimeVal = valorOuNull(relatorioDados!, 'lead_time_pr_hours');
-  const reviewTimeVal = valorOuNull(relatorioDados!, 'waiting_time_pr_hours');
-  const wipPRs = valorOuNull(relatorioDados!, 'wip_open_pull_requests') ?? 0;
-  const wipIssues = valorOuNull(relatorioDados!, 'wip_open_issues') ?? 0;
-  const wipVal = wipPRs + wipIssues;
-  const defectRateVal = (valorOuNull(relatorioDados!, 'defect_rate') ?? 0) * 100;
-
-  const scoreLeadTime = calcularSubScore(leadTimeVal, metas.leadTime);
-  const scoreReview = calcularSubScore(reviewTimeVal, metas.reviewTime);
-  const scoreWIP = calcularSubScore(wipVal, metas.wip);
-  const scoreDefectRate = calcularSubScore(defectRateVal, metas.defectRate);
-
-  const leanScore = Math.round((scoreLeadTime + scoreReview + scoreWIP + scoreDefectRate) / 4);
-
-  return {
-    leanScore,
-    scoreLeadTime,
-    scoreReview,
-    scoreWIP,
-    scoreDefectRate
-  };
-}
+// ── Lógica de Metas e Lean Score — importada de relatorioCompartilhado.ts ──
 
 // ── Renderização das Sub-Abas ─────────────────────────────────────
 
@@ -325,7 +213,7 @@ function renderizarSubtabMetas(dados: DadosDashboard): void {
   if (inputDefeitos) inputDefeitos.value = String(metas.defectRate);
 
   // Calcular pontuações
-  const scoreInfo = calcularLeanScore(metas);
+  const scoreInfo = calcularLeanScore(relatorioDados!, metas);
 
   // Atualizar Badges de Metas
   const badgeLead = document.getElementById('badge-meta-lead-time');
@@ -549,7 +437,7 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
         const metrica = h.metrics.find(m => m.name === 'lead_time_pr_hours');
         return metrica && metrica.value !== null ? +metrica.value.toFixed(1) : 0;
       });
-      renderLinhaHistorica('chart-hist-lead-time', datas, [{ name: 'Lead Time (PRs)', data: temposLead }], 'Evolução de Lead Time', 'horas');
+      renderLinhaHistorica('chart-hist-lead-time', datas, [{ name: 'Lead Time (PRs)', data: temposLead }], 'horas');
     }
 
     // 2. Cycle Time de Issues (linha)
@@ -560,7 +448,7 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
         const metrica = h.metrics.find(m => m.name === 'cycle_time_issue_hours');
         return metrica && metrica.value !== null ? +metrica.value.toFixed(1) : 0;
       });
-      renderLinhaHistorica('chart-hist-cycle-time', datas, [{ name: 'Cycle Time (Issues)', data: temposCiclo }], 'Evolução de Cycle Time', 'horas');
+      renderLinhaHistorica('chart-hist-cycle-time', datas, [{ name: 'Cycle Time (Issues)', data: temposCiclo }], 'horas');
     }
 
     // 3. Throughput 30d (linha)
@@ -571,7 +459,7 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
         const metrica = h.metrics.find(m => m.name === 'throughput_30d');
         return metrica && metrica.value !== null ? metrica.value : 0;
       });
-      renderLinhaHistorica('chart-hist-throughput', datas, [{ name: 'Throughput 30d', data: throughputs }], 'Evolução de Entregas (Throughput)', 'PRs');
+      renderLinhaHistorica('chart-hist-throughput', datas, [{ name: 'Throughput 30d', data: throughputs }], 'PRs');
     }
 
     // 4. Code Churn (linha)
@@ -582,7 +470,7 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
         const metrica = h.metrics.find(m => m.name === 'code_churn_weekly_avg');
         return metrica && metrica.value !== null ? metrica.value : 0;
       });
-      renderLinhaHistorica('chart-hist-churn', datas, [{ name: 'Code Churn', data: churns }], 'Evolução de Code Churn', 'linhas/semana');
+      renderLinhaHistorica('chart-hist-churn', datas, [{ name: 'Code Churn', data: churns }], 'linhas/semana');
     }
 
     // 5. Taxa de Retrabalho (linha)
@@ -591,9 +479,9 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
       containerRework.innerHTML = '';
       const reworks = ordenado.map(h => {
         const metrica = h.metrics.find(m => m.name === 'rework_fix_commit_ratio');
-        return metrica && metrica.value !== null ? +metrica.value.toFixed(1) : 0;
+        return metrica && metrica.value !== null ? +(metrica.value * 100).toFixed(1) : 0;
       });
-      renderLinhaHistorica('chart-hist-retrabalho', datas, [{ name: 'Retrabalho (%)', data: reworks }], 'Evolução de Retrabalho', '%');
+      renderLinhaHistorica('chart-hist-retrabalho', datas, [{ name: 'Retrabalho (%)', data: reworks }], '%');
     }
 
     // 6. Desperdícios Acumulados (coluna empilhada)
@@ -615,7 +503,11 @@ async function renderizarSubtabHistorico(repositorioId: number): Promise<void> {
         return { name: cat, data };
       });
 
-      renderDesperdiciosAcumulados('chart-hist-desperdicios', datas, seriesDesperdicios, 'Evolução de Sinais de Desperdício');
+      if (seriesDesperdicios.length === 0) {
+        containerWastes.innerHTML = '<p class="text-xs text-center py-8" style="color: var(--color-texto-suave);">Nenhum sinal de desperdício registrado no histórico.</p>';
+      } else {
+        renderDesperdiciosAcumulados('chart-hist-desperdicios', datas, seriesDesperdicios);
+      }
     }
 
   } catch (err) {

@@ -224,7 +224,7 @@ async function carregarRepositoriosRemotos(): Promise<void> {
       selectGithubRepo.innerHTML = `
         <option value="">-- Selecione um repositório seu --</option>
         ${list.map(r => `
-          <option value="${r.full_name}" data-branch="${r.default_branch}" data-description="${r.description || ''}">
+          <option value="${r.full_name}" data-branch="${r.branch_padrao}" data-description="${r.description || ''}">
             ${r.full_name} (${r.private ? 'Privado' : 'Público'})
           </option>
         `).join('')}

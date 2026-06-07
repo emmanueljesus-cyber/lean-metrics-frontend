@@ -9,8 +9,8 @@ export function renderLinhaHistorica(
   elementId: string,
   datas: string[],
   series: { name: string; data: number[] }[],
-  titulo: string,
-  unidade: string
+  unidade: string,
+  titulo?: string
 ): ApexCharts {
   const el = document.getElementById(elementId);
   if (!el) throw new Error(`[linha-historica] Elemento #${elementId} não encontrado.`);
@@ -23,15 +23,7 @@ export function renderLinhaHistorica(
       height: 280,
       zoom: { enabled: true }
     },
-    title: {
-      text: titulo,
-      align: 'left',
-      style: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: COR_TEXTO_FORTE
-      }
-    },
+    ...(titulo ? { title: { text: titulo, align: 'left', style: { fontSize: '14px', fontWeight: '600', color: COR_TEXTO_FORTE } } } : {}),
     stroke: {
       curve: 'smooth',
       width: 3
@@ -79,7 +71,7 @@ export function renderDesperdiciosAcumulados(
   elementId: string,
   datas: string[],
   series: { name: string; data: number[] }[],
-  titulo: string = 'Desperdícios Acumulados'
+  titulo?: string
 ): ApexCharts {
   const el = document.getElementById(elementId);
   if (!el) throw new Error(`[desperdicios-acumulados] Elemento #${elementId} não encontrado.`);
@@ -93,15 +85,7 @@ export function renderDesperdiciosAcumulados(
       stacked: true,
       toolbar: { show: true }
     },
-    title: {
-      text: titulo,
-      align: 'left',
-      style: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: COR_TEXTO_FORTE
-      }
-    },
+    ...(titulo ? { title: { text: titulo, align: 'left', style: { fontSize: '14px', fontWeight: '600', color: COR_TEXTO_FORTE } } } : {}),
     plotOptions: {
       bar: {
         horizontal: false,

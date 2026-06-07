@@ -49,7 +49,7 @@ export interface RepositorioGitHub {
   name: string;
   full_name: string;
   private: boolean;
-  default_branch: string;
+  branch_padrao: string;
   description: string | null;
   html_url: string;
   owner: { login: string };

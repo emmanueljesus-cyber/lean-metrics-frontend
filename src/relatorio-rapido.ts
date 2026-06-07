@@ -17,6 +17,10 @@ import { exportarCSV, exportarJSON, exportarPNG } from './graficos/exportar';
 import { renderComparativo } from './graficos/charts/comparativo';
 import { renderDonut } from './graficos/charts/donut';
 import ApexCharts from 'apexcharts';
+import {
+  METRICS_ICONS, ICONES_CATEGORIA, CORES_SEV, SEV_PT,
+  obterMetas, salvarMetas, calcularLeanScore,
+} from './relatorioCompartilhado';
 
 // ── Exemplos pré-definidos ─────────────────────────────────────────
 
@@ -72,58 +76,6 @@ function renderizarExemplos(): void {
 
 // ── Renderização do resultado ──────────────────────────────────────
 
-const CORES_SEV: Record<Severidade, { bg: string; borda: string; cor: string }> = {
-  high:   { bg: 'rgba(255,77,109,0.08)',  borda: 'rgba(255,77,109,0.3)',  cor: '#ff4d6d' },
-  medium: { bg: 'rgba(255,184,77,0.08)', borda: 'rgba(255,184,77,0.3)', cor: '#ffb84d' },
-  low:    { bg: 'rgba(77,207,255,0.08)', borda: 'rgba(77,207,255,0.3)', cor: '#4dcfff' },
-  alta:   { bg: 'rgba(255,77,109,0.08)',  borda: 'rgba(255,77,109,0.3)',  cor: '#ff4d6d' },
-  média:  { bg: 'rgba(255,184,77,0.08)', borda: 'rgba(255,184,77,0.3)', cor: '#ffb84d' },
-  baixa:  { bg: 'rgba(77,207,255,0.08)', borda: 'rgba(77,207,255,0.3)', cor: '#4dcfff' },
-};
-const SEV_PT: Record<Severidade, string> = {
-  high: 'Alta', medium: 'Média', low: 'Baixa',
-  alta: 'Alta', média: 'Média', baixa: 'Baixa'
-};
-const ICONES_CAT: Record<string, string> = {
-  waiting:                        '<i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i>',
-  work_in_progress:               '<i data-lucide="activity" class="w-5 h-5 text-amber-400"></i>',
-  defects:                        '<i data-lucide="bug" class="w-5 h-5 text-rose-400"></i>',
-  extra_processing:               '<i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>',
-  handoff:                        '<i data-lucide="users" class="w-5 h-5 text-teal-400"></i>',
-  partially_done:                 '<i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>',
-  'Espera':                       '<i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i>',
-  'WIP excessivo':                '<i data-lucide="activity" class="w-5 h-5 text-amber-400"></i>',
-  'Defeitos / Retrabalho':        '<i data-lucide="bug" class="w-5 h-5 text-rose-400"></i>',
-  'Processamento desnecessário':  '<i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>',
-  'Centralização de trabalho':    '<i data-lucide="users" class="w-5 h-5 text-teal-400"></i>',
-  'Trabalho parcialmente feito':  '<i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>',
-};
-
-const METRICS_ICONS: Record<string, { icon: string; colorClass: string }> = {
-  lead_time_pr_hours:          { icon: 'clock',       colorClass: 'text-indigo-400' },
-  cycle_time_issue_hours:      { icon: 'rotate-cw',   colorClass: 'text-blue-400' },
-  waiting_time_pr_hours:       { icon: 'hourglass',   colorClass: 'text-purple-400' },
-  wip_open_pull_requests:      { icon: 'activity',    colorClass: 'text-amber-400' },
-  wip_open_issues:             { icon: 'activity',    colorClass: 'text-amber-400' },
-  abandoned_issues_count:      { icon: 'alert-circle', colorClass: 'text-amber-500' },
-  throughput_30d:              { icon: 'zap',         colorClass: 'text-yellow-400' },
-  commit_velocity_daily:       { icon: 'trending-up', colorClass: 'text-yellow-500' },
-  days_since_last_commit:      { icon: 'calendar',    colorClass: 'text-gray-400' },
-  defect_rate:                 { icon: 'bug',         colorClass: 'text-rose-400' },
-  rework_fix_commit_ratio:     { icon: 'layers',      colorClass: 'text-emerald-400' },
-  chaotic_commit_ratio:        { icon: 'alert-triangle', colorClass: 'text-rose-500' },
-  rejected_pr_ratio:           { icon: 'alert-circle', colorClass: 'text-rose-300' },
-  top_contributor_share:       { icon: 'users',       colorClass: 'text-teal-400' },
-  active_contributors_30d:     { icon: 'users',       colorClass: 'text-teal-400' },
-  contributor_distribution:    { icon: 'users',       colorClass: 'text-teal-500' },
-  code_churn_weekly_avg:       { icon: 'code',        colorClass: 'text-cyan-400' },
-  most_active_branch_name:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
-  most_active_branch_days:     { icon: 'git-branch',  colorClass: 'text-orange-400' },
-  total_commits_sampled:       { icon: 'database',    colorClass: 'text-slate-400' },
-  total_prs_sampled:           { icon: 'git-pull-request', colorClass: 'text-slate-400' },
-  open_issues_repository_total:{ icon: 'hash',        colorClass: 'text-slate-400' },
-};
-
 function htmlMetricaCompacta(m: ValorMetrica, delay: number): string {
   const nome  = NOMES_METRICAS[m.name] ?? m.name;
   let valor = formatarValorMetrica(m.value, m.unit);
@@ -159,7 +111,7 @@ function htmlMetricaCompacta(m: ValorMetrica, delay: number): string {
 
 function htmlSinal(s: SinalDesperdicio, delay: number): string {
   const c     = CORES_SEV[s.severity];
-  const icone = ICONES_CAT[s.category] ?? '<i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>';
+  const icone = ICONES_CATEGORIA[s.category] ?? '<i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>';
   const cat   = NOMES_CATEGORIAS[s.category] ?? s.category;
   return `
     <div class="flex items-start gap-3 rounded-xl p-4 animar-entrar"
@@ -333,73 +285,7 @@ function alternarTab(aba: 'relatorio' | 'graficos'): void {
   }
 }
 
-// ── Lógica de Metas e Lean Score ───────────────────────────────────
-
-interface MetasConfig {
-  leadTime: number;
-  reviewTime: number;
-  wip: number;
-  defectRate: number;
-}
-
-function obterMetas(repoName: string): MetasConfig {
-  const key = `metas_${repoName}`;
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      // Ignora erro
-    }
-  }
-  return {
-    leadTime: 120,    // 5 dias
-    reviewTime: 24,   // 24 horas
-    wip: 10,
-    defectRate: 5     // 5%
-  };
-}
-
-function salvarMetas(repoName: string, metas: MetasConfig): void {
-  const key = `metas_${repoName}`;
-  localStorage.setItem(key, JSON.stringify(metas));
-}
-
-function calcularSubScore(atual: number | null, meta: number): number {
-  if (atual === null || atual === undefined) return 100;
-  if (atual <= meta) return 100;
-  return Math.max(0, Math.round(100 - ((atual - meta) / meta) * 100));
-}
-
-function calcularLeanScore(metas: MetasConfig): {
-  leanScore: number;
-  scoreLeadTime: number;
-  scoreReview: number;
-  scoreWIP: number;
-  scoreDefectRate: number;
-} {
-  const leadTimeVal = valorOuNull(relatorioDados!, 'lead_time_pr_hours');
-  const reviewTimeVal = valorOuNull(relatorioDados!, 'waiting_time_pr_hours');
-  const wipPRs = valorOuNull(relatorioDados!, 'wip_open_pull_requests') ?? 0;
-  const wipIssues = valorOuNull(relatorioDados!, 'wip_open_issues') ?? 0;
-  const wipVal = wipPRs + wipIssues;
-  const defectRateVal = (valorOuNull(relatorioDados!, 'defect_rate') ?? 0) * 100;
-
-  const scoreLeadTime = calcularSubScore(leadTimeVal, metas.leadTime);
-  const scoreReview = calcularSubScore(reviewTimeVal, metas.reviewTime);
-  const scoreWIP = calcularSubScore(wipVal, metas.wip);
-  const scoreDefectRate = calcularSubScore(defectRateVal, metas.defectRate);
-
-  const leanScore = Math.round((scoreLeadTime + scoreReview + scoreWIP + scoreDefectRate) / 4);
-
-  return {
-    leanScore,
-    scoreLeadTime,
-    scoreReview,
-    scoreWIP,
-    scoreDefectRate
-  };
-}
+// ── Lógica de Metas e Lean Score — importada de relatorioCompartilhado.ts ──
 
 // ── Renderização das Sub-Abas ─────────────────────────────────────
 
@@ -418,7 +304,7 @@ function renderizarSubtabMetas(dados: DadosDashboard): void {
   if (inputDefeitos) inputDefeitos.value = String(metas.defectRate);
 
   // Calcular pontuações
-  const scoreInfo = calcularLeanScore(metas);
+  const scoreInfo = calcularLeanScore(relatorioDados!, metas);
 
   // Atualizar Badges de Metas
   const badgeLead = document.getElementById('badge-meta-lead-time');

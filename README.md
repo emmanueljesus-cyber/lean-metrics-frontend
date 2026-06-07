@@ -11,7 +11,7 @@ A interface foi projetada com foco em **desempenho extremo**, **estética ultra-
 * **Core:** HTML5, CSS3, JavaScript & [TypeScript](https://www.typescriptlang.org/) (Tipagem estrita e robusta)
 * **Bundler & Dev Server:** [Vite v8](https://vite.dev/) (Carregamento e HMR instantâneos)
 * **Estilização (CSS):** [Tailwind CSS v4](https://tailwindcss.com/) (Estilização ultra-rápida baseada em utilitários de última geração)
-* **Gráficos Dinâmicos:** [Chart.js v4](https://www.chartjs.org/) (Visualização analítica interativa com suporte a light/dark mode em tempo real)
+* **Gráficos Dinâmicos:** [ApexCharts v5](https://apexcharts.com/) (Visualização analítica interativa com suporte a light/dark mode em tempo real)
 * **Ícones Vetoriais:** [Lucide Icons](https://lucide.dev/) (Consistência visual limpa e moderna)
 
 ---
@@ -36,6 +36,7 @@ cp .env.example .env
 ```
 No arquivo `.env`, você pode configurar a variável `VITE_API_URL` para apontar para a API ativa do seu backend (por exemplo, em desenvolvimento local: `http://localhost:8000`).
 > 💡 **Nota:** Se você deixar a variável `VITE_API_URL` vazia, o Vite usará automaticamente o proxy interno configurado em `vite.config.ts` (`/api` → `http://localhost:8000`), o que é ideal para o desenvolvimento local sem problemas de CORS.
+> ⚠️ **Em produção:** defina `VITE_API_URL` com a URL real do backend (ex: `https://api.meu-servidor.com`). Sem isso, o login OAuth e as chamadas à API não funcionarão.
 
 ### 4. Iniciar o Servidor de Desenvolvimento
 Inicie o servidor de desenvolvimento local:

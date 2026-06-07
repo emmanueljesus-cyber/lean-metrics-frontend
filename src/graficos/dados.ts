@@ -30,18 +30,6 @@ export interface DadosRadialSimples {
   meta_max?: number;
 }
 
-export interface DadosRadialMulti {
-  series: number[];
-  labels: string[];
-  cores:  string[];
-}
-
-export interface DadosBarraEmpilhada {
-  categorias: string[];
-  series: { nome: string; dados: number[]; cor: string }[];
-  eixoY: string;
-}
-
 export interface DadosColuna {
   categorias: string[];
   valores:    number[];
@@ -50,47 +38,6 @@ export interface DadosColuna {
 
 export interface DadosDonut {
   labels:  string[];
-  valores: number[];
-}
-
-export interface LinhaBilling {
-  nome: string;
-  jan: number | null;
-  fev: number | null;
-  mar: number | null;
-  abr: number | null;
-  mai: number | null;
-  jun: number | null;
-  total: number;
-  [key: string]: string | number | null;
-}
-
-export interface DadosHorasMensais {
-  meses: string[];
-  serie_a: number[];
-  serie_b: number[];
-}
-
-export interface DadosLeadTime {
-  tipos: string[];
-  horas: number[];
-}
-
-export interface DadosNPS {
-  total: number;
-  promotores: number;
-  passivos: number;
-  detratores: number;
-}
-
-export interface DadosOccupancy {
-  atual: number;
-  meta_min: number;
-  meta_max: number;
-}
-
-export interface DadosResolucao {
-  categorias: string[];
   valores: number[];
 }
 

@@ -208,28 +208,40 @@
           <div class="g-chart-card">
             <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="clock" class="w-4 h-4 mr-1 inline-block align-middle text-emerald-400"></i>Lead Time de PRs</span>
-              <span class="text-xs text-slate-400" id="badge-meta-lead-time"></span>
+              <span class="flex items-center gap-2">
+                <span class="text-xs text-slate-400" id="badge-meta-lead-time"></span>
+                <span data-tooltip="Tempo médio da abertura ao merge de uma PR. Meta indica o tempo máximo aceitável." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+              </span>
             </div>
             <div id="chart-meta-lead-time"></div>
           </div>
           <div class="g-chart-card">
             <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="hourglass" class="w-4 h-4 mr-1 inline-block align-middle text-amber-400"></i>Waiting Time (Review)</span>
-              <span class="text-xs text-slate-400" id="badge-meta-review-time"></span>
+              <span class="flex items-center gap-2">
+                <span class="text-xs text-slate-400" id="badge-meta-review-time"></span>
+                <span data-tooltip="Tempo médio que uma PR espera antes de ser revisada. Mede o gargalo de revisão." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+              </span>
             </div>
             <div id="chart-meta-review-time"></div>
           </div>
           <div class="g-chart-card">
             <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="folder" class="w-4 h-4 mr-1 inline-block align-middle text-blue-400"></i>WIP (PRs + Issues)</span>
-              <span class="text-xs text-slate-400" id="badge-meta-wip"></span>
+              <span class="flex items-center gap-2">
+                <span class="text-xs text-slate-400" id="badge-meta-wip"></span>
+                <span data-tooltip="Total de trabalho em progresso. WIP alto indica acúmulo e risco de gargalo no fluxo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+              </span>
             </div>
             <div id="chart-meta-wip"></div>
           </div>
           <div class="g-chart-card">
             <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-semibold" style="color: var(--color-texto);"><i data-lucide="bug" class="w-4 h-4 mr-1 inline-block align-middle text-rose-400"></i>Taxa de Defeitos</span>
-              <span class="text-xs text-slate-400" id="badge-meta-defeitos"></span>
+              <span class="flex items-center gap-2">
+                <span class="text-xs text-slate-400" id="badge-meta-defeitos"></span>
+                <span data-tooltip="% de PRs classificadas como correção de bug. Quanto menor, melhor a qualidade." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+              </span>
             </div>
             <div id="chart-meta-defeitos"></div>
           </div>
@@ -240,34 +252,39 @@
       <div id="subtab-conteudo-distribuicao" style="display: none;">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div class="g-chart-card">
-            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
-              <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i> Distribuição de Desperdícios
+            <h4 class="text-sm font-bold mb-2 flex items-center justify-between" style="color: var(--color-texto);">
+              <span class="flex items-center gap-1.5"><i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i> Distribuição de Desperdícios</span>
+              <span data-tooltip="Proporção de sinais de desperdício Lean por categoria detectados no relatório." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
             </h4>
             <div id="chart-dist-desperdicios"></div>
           </div>
           <div class="g-chart-card">
-            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
-              <i data-lucide="git-pull-request" class="w-4 h-4 text-[#00c896]"></i> Pull Requests (Abertas vs Fechadas)
+            <h4 class="text-sm font-bold mb-2 flex items-center justify-between" style="color: var(--color-texto);">
+              <span class="flex items-center gap-1.5"><i data-lucide="git-pull-request" class="w-4 h-4 text-[#00c896]"></i> Pull Requests (Abertas vs Fechadas)</span>
+              <span data-tooltip="Relação entre PRs em aberto e fechadas/mergeadas. Muitas abertas indicam acúmulo no fluxo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
             </h4>
             <div id="chart-dist-prs"></div>
           </div>
           <div class="g-chart-card">
-            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
-              <i data-lucide="rotate-cw" class="w-4 h-4 text-sky-400"></i> Issues (Abertas vs Fechadas)
+            <h4 class="text-sm font-bold mb-2 flex items-center justify-between" style="color: var(--color-texto);">
+              <span class="flex items-center gap-1.5"><i data-lucide="rotate-cw" class="w-4 h-4 text-sky-400"></i> Issues (Abertas vs Fechadas)</span>
+              <span data-tooltip="Relação entre Issues abertas (backlog) e resolvidas. Indica o equilíbrio entre demanda e entrega." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
             </h4>
             <div id="chart-dist-issues"></div>
           </div>
           <div class="g-chart-card">
-            <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
-              <i data-lucide="users" class="w-4 h-4 text-purple-400"></i> Distribuição de Commits por Dev (%)
+            <h4 class="text-sm font-bold mb-2 flex items-center justify-between" style="color: var(--color-texto);">
+              <span class="flex items-center gap-1.5"><i data-lucide="users" class="w-4 h-4 text-purple-400"></i> Distribuição de Commits por Dev (%)</span>
+              <span data-tooltip="% de commits por desenvolvedor. Valores desiguais indicam centralização de conhecimento." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
             </h4>
             <div id="chart-dist-commits-dev"></div>
           </div>
         </div>
         
         <div class="g-chart-card mb-6">
-          <h4 class="text-sm font-bold mb-2 flex items-center gap-1.5" style="color: var(--color-texto);">
-            <i data-lucide="hash" class="w-4 h-4 text-amber-400"></i> Volume de Commits por Desenvolvedor (Absoluto)
+          <h4 class="text-sm font-bold mb-2 flex items-center justify-between" style="color: var(--color-texto);">
+            <span class="flex items-center gap-1.5"><i data-lucide="hash" class="w-4 h-4 text-amber-400"></i> Volume de Commits por Desenvolvedor (Absoluto)</span>
+            <span data-tooltip="Quantidade absoluta de commits por desenvolvedor. Mostra quem está contribuindo ativamente." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
           </h4>
           <div id="chart-dist-commits-absoluto"></div>
         </div>
@@ -277,21 +294,45 @@
       <div id="subtab-conteudo-historico" style="display: none;">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="historico-grid-content">
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="clock" class="w-4 h-4 text-emerald-400"></i> Evolução de Lead Time</span>
+              <span data-tooltip="Evolução do Lead Time de PRs ao longo do tempo. Tendência crescente indica piora no fluxo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-lead-time"></div>
           </div>
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="rotate-cw" class="w-4 h-4 text-sky-400"></i> Evolução de Cycle Time</span>
+              <span data-tooltip="Evolução do Cycle Time de Issues. Mede a velocidade de resolução de tarefas ao longo do tempo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-cycle-time"></div>
           </div>
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="zap" class="w-4 h-4 text-purple-400"></i> Evolução de Throughput</span>
+              <span data-tooltip="PRs mergeadas por período. Tendência crescente indica maior capacidade de entrega." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-throughput"></div>
           </div>
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="git-commit" class="w-4 h-4 text-amber-400"></i> Evolução de Code Churn</span>
+              <span data-tooltip="Variação média semanal de linhas reescritas. Churn alto pode indicar retrabalho excessivo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-churn"></div>
           </div>
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="bug" class="w-4 h-4 text-rose-400"></i> Evolução de Retrabalho</span>
+              <span data-tooltip="% de commits de correção (fix/bug) ao longo do tempo. Taxa alta indica degradação da qualidade." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-retrabalho"></div>
           </div>
           <div class="g-chart-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto);"><i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i> Evolução de Desperdícios</span>
+              <span data-tooltip="Quantidade de sinais de desperdício Lean por categoria ao longo do tempo." class="inline-flex flex-shrink-0 cursor-help" style="color: var(--color-texto-suave);"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+            </div>
             <div id="chart-hist-desperdicios"></div>
           </div>
         </div>

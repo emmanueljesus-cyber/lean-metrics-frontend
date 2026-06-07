@@ -22,15 +22,17 @@ export function renderDonut(
       type: 'donut',
       height: 260,
     },
-    title: titulo ? {
-      text: titulo,
-      align: 'center',
-      style: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: isLight ? '#0f172a' : '#e8edf5'
+    ...(titulo ? {
+      title: {
+        text: titulo,
+        align: 'center',
+        style: {
+          fontSize: '14px',
+          fontWeight: '600',
+          color: isLight ? '#0f172a' : '#e8edf5'
+        }
       }
-    } : undefined,
+    } : {}),
     labels: labels,
     series: valores,
     colors: customColors || CORES,
