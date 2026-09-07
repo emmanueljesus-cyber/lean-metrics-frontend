@@ -1,146 +1,161 @@
-/**
- * api.ts — Cliente HTTP tipado para a API do GitHub Lean Metrics
- * Todas as requisições da aplicação passam por este módulo.
- */
-
 import type {
-  UsuarioPerfil,
-  Repositorio,
-  RepositorioGitHub,
-  Pagina,
+  CadastroResposta,
   CriarRepositorioInput,
-  AtualizarRepositorioInput,
+  Pagina,
+  Repositorio,
   RelatorioRepositorio,
-} from './tipos';
+  RespostaToken,
+} from "./tipos";
 
-// Em dev, o Vite proxy redireciona /api → http://localhost:8000/api
-// Em produção ou caso VITE_API_URL esteja definida, a usamos como base absoluta.
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? (import.meta.env.VITE_API_URL.endsWith('/') ? import.meta.env.VITE_API_URL.slice(0, -1) : import.meta.env.VITE_API_URL) + '/api/v1' 
-  : '/api/v1';
-
-// ── Classe de erro tipado ──────────────────────────────────────────
-
+const origem = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
+export const API_BASE = origem.endsWith("/api/v1")
+  ? origem
+  : origem + "/api/v1";
+const TOKEN_KEY = "lean-metrics-token";
+export function obterToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+export function salvarToken(token: string): void {
+  sessionStorage.setItem(TOKEN_KEY, token);
+}
+export function limparSessao(): void {
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem("lean-metrics-user");
+}
 export class ErroApiHTTP extends Error {
   status: number;
   codigo: string;
-
-  constructor(
-    mensagem: string,
-    status: number,
-    codigo: string,
-  ) {
-    super(mensagem);
-    this.name = 'ErroApiHTTP';
+  constructor(message: string, status: number, codigo = "api_error") {
+    super(message);
+    this.name = "ErroApiHTTP";
     this.status = status;
     this.codigo = codigo;
   }
 }
-
-// ── Função central de requisição ───────────────────────────────────
-
-async function requisicao<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE}${caminho}`;
-
-  const config: RequestInit = {
-    credentials: 'include', // Envia cookie httponly automaticamente
-    headers: {
-      'Content-Type': 'application/json',
-      ...(opcoes.headers as Record<string, string> | undefined),
-    },
-    ...opcoes,
-  };
-
-  const resposta = await fetch(url, config);
-
-  // Sem conteúdo (ex: DELETE 204)
-  if (resposta.status === 204) return null as T;
-
-  const dados = await resposta.json().catch(() => null);
-
-  if (!resposta.ok) {
-    const mensagem: string = dados?.error?.message ?? `Erro ${resposta.status}`;
-    const codigo: string   = dados?.error?.code   ?? 'api_error';
-    throw new ErroApiHTTP(mensagem, resposta.status, codigo);
+export async function requisicao<T>(
+  caminho: string,
+  opcoes: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(opcoes.headers);
+  headers.set("Accept", "application/json");
+  if (opcoes.body) headers.set("Content-Type", "application/json");
+  const token = obterToken();
+  if (token) headers.set("Authorization", "Bearer " + token);
+  let resposta: Response;
+  try {
+    resposta = await fetch(API_BASE + caminho, {
+      ...opcoes,
+      headers,
+      signal: opcoes.signal ?? AbortSignal.timeout(90000),
+    });
+  } catch (erro) {
+    if (erro instanceof DOMException && erro.name === "AbortError") throw erro;
+    throw new ErroApiHTTP(
+      "Não foi possível acessar a API. Verifique sua conexão e se o backend está em execução.",
+      0,
+    );
   }
-
+  const dados = await resposta.json().catch(() => null);
+  if (!resposta.ok) {
+    if (resposta.status === 401 && !caminho.startsWith("/auth/")) {
+      limparSessao();
+      window.dispatchEvent(new Event("sessionexpired"));
+    }
+    const traducoes: Record<string, string> = {
+      "This repository is already registered.":
+        "Este repositório já está cadastrado.",
+      "Invalid or expired access token.":
+        "Sua sessão expirou. Entre novamente.",
+      "Repository was not found.": "Repositório não encontrado.",
+      "Invalid credentials.": "E-mail ou senha incorretos.",
+    };
+    const mensagem =
+      dados?.error?.message ??
+      (typeof dados?.detail === "string" ? dados.detail : null);
+    const padrao: Record<number, string> = {
+      401: "E-mail ou senha incorretos, ou sessão expirada.",
+      409: "Cadastro já existente. Verifique os dados informados.",
+      422: "Confira os campos informados e tente novamente.",
+      429: "Limite de requisições atingido. Aguarde antes de tentar novamente.",
+      502: "O GitHub não respondeu à consulta. Confira o repositório e as permissões do token.",
+    };
+    throw new ErroApiHTTP(
+      (mensagem && traducoes[mensagem]) ||
+        padrao[resposta.status] ||
+        mensagem ||
+        "Não foi possível concluir a solicitação.",
+      resposta.status,
+      dados?.error?.code,
+    );
+  }
+  if (!dados || typeof dados !== "object")
+    throw new ErroApiHTTP(
+      "A API retornou uma resposta inválida.",
+      resposta.status,
+    );
   return dados as T;
 }
-
-// ── Helpers de método ──────────────────────────────────────────────
-
-function get<T>(caminho: string, cabecalhos?: Record<string, string>): Promise<T> {
-  return requisicao<T>(caminho, { method: 'GET', headers: cabecalhos });
-}
-
-// SEC-03: Permite o envio de corpo (body) em requisições de criação de recurso (POST)
-function post<T>(caminho: string, corpo?: unknown): Promise<T> {
-  return requisicao<T>(caminho, { method: 'POST', body: JSON.stringify(corpo) });
-}
-
-function patch<T>(caminho: string, corpo: unknown): Promise<T> {
-  return requisicao<T>(caminho, { method: 'PATCH', body: JSON.stringify(corpo) });
-}
-
-function deletar(caminho: string): Promise<null> {
-  return requisicao<null>(caminho, { method: 'DELETE' });
-}
-
-// ── Endpoints agrupados por domínio ───────────────────────────────
-
 export const api = {
   auth: {
-    /** Retorna o perfil do usuário autenticado (usa cookie httponly) */
-    perfil: () => get<UsuarioPerfil>('/autenticacao/perfil'),
-
-    /** Encerra a sessão e limpa os cookies */
-    logout: () => post<null>('/autenticacao/sair'),
+    login: (email: string, password: string) =>
+      requisicao<RespostaToken>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }),
+    registrar: (username: string, email: string, password: string) =>
+      requisicao<CadastroResposta>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password }),
+      }),
   },
-
   repositorios: {
-    /** Lista os repositórios do usuário com paginação */
-    listar: (pagina = 1, tamanho = 20) =>
-      get<Pagina<Repositorio>>(`/repositorios?page=${pagina}&page_size=${tamanho}`),
-
-    /** Busca um repositório pelo ID */
-    buscar: (id: number) => get<Repositorio>(`/repositorios/${id}`),
-
-    /** Cadastra um novo repositório */
+    listar: (page = 1, pageSize = 12) =>
+      requisicao<Pagina<Repositorio>>(
+        "/repositories?page=" + page + "&page_size=" + pageSize,
+      ),
+    buscar: (id: number) => requisicao<Repositorio>("/repositories/" + id),
     criar: (dados: CriarRepositorioInput) =>
-      post<Repositorio>('/repositorios', dados),
-
-    /** Atualiza campos opcionais de um repositório */
-    atualizar: (id: number, dados: AtualizarRepositorioInput) =>
-      patch<Repositorio>(`/repositorios/${id}`, dados),
-
-    /** Remove um repositório permanentemente */
-    deletar: (id: number) => deletar(`/repositorios/${id}`),
-
-    /** Lista repositórios do GitHub para importação */
-    listarDoGitHub: (tokenGitHub?: string) =>
-      get<RepositorioGitHub[]>(
-        '/repositorios/github/listar',
-        tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
-      ),
+      requisicao<Repositorio>("/repositories", {
+        method: "POST",
+        body: JSON.stringify(dados),
+      }),
   },
-
   relatorios: {
-    /** Gera um relatório Lean para um repositório cadastrado */
-    gerar: (repositorioId: number, tokenGitHub?: string) =>
-      get<RelatorioRepositorio>(
-        `/relatorios/repositorio/${repositorioId}/gerar`,
-        tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
-      ),
-
-    /** Histórico de relatórios persistidos do repositório */
-    historico: (repositorioId: number, limite = 10) =>
-      get<RelatorioRepositorio[]>(`/relatorios/repositorio/${repositorioId}/historico?limit=${limite}`),
-
-    /** Análise rápida de qualquer repositório público */
-    rapido: (proprietario: string, repositorio: string, tokenGitHub?: string) =>
-      get<RelatorioRepositorio>(
-        `/relatorios/relatorio-rapido?proprietario=${encodeURIComponent(proprietario)}&repositorio=${encodeURIComponent(repositorio)}`,
-        tokenGitHub ? { 'X-GitHub-Token': tokenGitHub } : undefined,
-      ),
+    gerar: (id: number, tokenGitHub?: string) =>
+      requisicao<RelatorioRepositorio>("/repositories/" + id + "/report", {
+        headers: tokenGitHub ? { "X-GitHub-Token": tokenGitHub } : {},
+      }),
   },
 };
+/** Reutiliza um cadastro existente; trata também cadastros simultâneos. */
+export async function encontrarOuCadastrar(
+  owner: string,
+  repo: string,
+): Promise<Repositorio> {
+  async function encontrar(): Promise<Repositorio | null> {
+    for (let page = 1; ; page++) {
+      const resposta = await api.repositorios.listar(page, 100);
+      const item = resposta.items.find(
+        (r) =>
+          r.owner_name.toLowerCase() === owner.toLowerCase() &&
+          r.repository_name.toLowerCase() === repo.toLowerCase(),
+      );
+      if (item) return item;
+      if (page >= resposta.total_pages) return null;
+    }
+  }
+  const existente = await encontrar();
+  if (existente) return existente;
+  try {
+    return await api.repositorios.criar({
+      owner_name: owner,
+      repository_name: repo,
+    });
+  } catch (erro) {
+    if (erro instanceof ErroApiHTTP && erro.status === 409) {
+      const cadastrado = await encontrar();
+      if (cadastrado) return cadastrado;
+    }
+    throw erro;
+  }
+}

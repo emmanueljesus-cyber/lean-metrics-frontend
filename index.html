@@ -1,195 +1,242 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GitHub Lean Metrics — Identifique desperdícios no seu desenvolvimento</title>
-  <meta name="description" content="Analise repositórios GitHub com métricas Lean: Lead Time, Cycle Time, WIP, Code Churn e muito mais. Trabalho de Conclusão de Curso." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="/src/style.css" />
-</head>
-<body>
-
-  <!-- ── Navbar ───────────────────────────────────────────── -->
-  <nav class="sticky top-0 z-50 border-b"
-       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
-    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4"
-         style="animation: entrar-cima 0.4s ease;">
-      <!-- Logo -->
-      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
-         style="color: var(--color-texto);">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-base gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
-        Lean<span style="color: var(--color-acento);">Metrics</span>
-      </a>
-
-      <!-- Links -->
-      <div class="hidden md:flex items-center gap-1">
-        <a href="/relatorio-rapido.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
-           style="color: var(--color-texto-suave);"
-           onmouseover="this.style.color='var(--color-texto)'; this.style.background='var(--color-fundo-card)'"
-           onmouseout="this.style.color='var(--color-texto-suave)'; this.style.background='transparent'">
-          Análise Rápida
-        </a>
-        <a href="/painel.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
-           style="color: var(--color-texto-suave);" data-auth="logado"
-           onmouseover="this.style.color='var(--color-texto)'; this.style.background='var(--color-fundo-card)'"
-           onmouseout="this.style.color='var(--color-texto-suave)'; this.style.background='transparent'">
-          Painel
-        </a>
-      </div>
-
-      <!-- Usuário -->
-      <div class="flex items-center gap-3">
-        <span id="nav-usuario"></span>
-        <a href="/painel.html" data-auth="logado"
-           class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento transition-all duration-200 hover:-translate-y-px"
-           style="color: #070d1a; text-decoration: none;"
-           onmouseover="this.style.boxShadow='0 0 20px rgba(0,200,150,0.3)'"
-           onmouseout="this.style.boxShadow='none'">
-          Painel
-        </a>
-        <button id="btn-entrar" data-auth="deslogado"
-                class="px-3 py-1.5 rounded-lg text-sm font-semibold gradient-acento cursor-pointer border-0"
-                style="color: #070d1a;"
-                onmouseover="this.style.boxShadow='0 0 20px rgba(0,200,150,0.3)'"
-                onmouseout="this.style.boxShadow='none'">
-          Entrar com GitHub
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- ── Hero ─────────────────────────────────────────────── -->
-  <main>
-    <section class="py-24 text-center px-6">
-      <div class="max-w-4xl mx-auto">
-        <!-- Tag TCC -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest mb-8"
-             style="background: var(--color-acento-suave); border: 1px solid rgba(0,200,150,0.2); color: var(--color-acento); animation: entrar-baixo 0.5s ease;">
-          <i data-lucide="graduation-cap" class="w-4 h-4 text-emerald-400"></i> Trabalho de Conclusão de Curso
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Métricas Lean de repositórios GitHub com uma leitura clara do fluxo de trabalho."
+    />
+    <title>Início · LeanMetrics</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header">
+      <nav class="container navbar" aria-label="Navegação principal">
+        <a class="brand" href="/index.html"
+          ><span class="brand-mark"
+            ><i data-lucide="bar-chart-3" aria-hidden="true"></i></span
+          ><span>Lean<span class="accent">Metrics</span></span></a
+        >
+        <div class="nav-links">
+          <a href="/painel.html">Painel</a
+          ><a href="/relatorio-rapido.html">Análise rápida</a>
         </div>
-
-        <!-- Título -->
-        <h1 class="mb-6" style="animation: entrar-baixo 0.5s ease 0.1s both;">
-          Identifique desperdícios no seu<br />
-          <span class="texto-gradiente">desenvolvimento de software</span>
-        </h1>
-
-        <!-- Subtítulo -->
-        <p class="text-lg max-w-xl mx-auto mb-10"
-           style="color: var(--color-texto-suave); animation: entrar-baixo 0.5s ease 0.2s both;">
-          Conecte um repositório GitHub e obtenha um relatório baseado nos princípios do
-          <strong style="color: var(--color-texto);">Lean Software Development</strong> —
-          com métricas reais e detecção automática de gargalos.
-        </p>
-
-        <!-- CTAs -->
-        <div class="flex gap-4 justify-center flex-wrap"
-             style="animation: entrar-baixo 0.5s ease 0.3s both;">
-          <button id="btn-hero-login" data-auth="deslogado"
-                  class="px-7 py-3 rounded-xl text-base font-bold gradient-acento cursor-pointer border-0 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                  style="color: #070d1a;"
-                  onmouseover="this.style.boxShadow='0 0 28px rgba(0,200,150,0.4)'"
-                  onmouseout="this.style.boxShadow='none'">
-            <i data-lucide="git-branch" class="w-5 h-5"></i> Entrar com GitHub
+        <div class="nav-actions">
+          <span
+            id="nav-usuario"
+            class="small muted"
+            data-auth="logado"
+            hidden
+          ></span
+          ><button
+            type="button"
+            class="icon-button"
+            id="btn-theme-toggle"
+            aria-label="Alternar tema"
+          ></button
+          ><a
+            class="button small-button"
+            href="/index.html?entrar=1#acesso"
+            data-auth="deslogado"
+            >Entrar</a
+          ><button
+            class="icon-button"
+            id="btn-logout"
+            data-auth="logado"
+            hidden
+            aria-label="Sair da conta"
+          >
+            <i data-lucide="log-out" aria-hidden="true"></i>
           </button>
-          <a href="/painel.html" data-auth="logado"
-             class="px-7 py-3 rounded-xl text-base font-bold gradient-acento transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-             style="color: #070d1a; text-decoration: none;"
-             onmouseover="this.style.boxShadow='0 0 28px rgba(0,200,150,0.4)'"
-             onmouseout="this.style.boxShadow='none'">
-            <i data-lucide="zap" class="w-5 h-5"></i> Ir para o Painel
-          </a>
-          <a href="/relatorio-rapido.html"
-             class="px-7 py-3 rounded-xl text-base font-bold border transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-             style="color: var(--color-texto); text-decoration: none; background: var(--color-fundo-card); border-color: var(--color-borda);"
-             onmouseover="this.style.borderColor='var(--color-borda-hover)'"
-             onmouseout="this.style.borderColor='var(--color-borda)'">
-            <i data-lucide="search" class="w-5 h-5"></i> Análise Rápida
-          </a>
         </div>
-      </div>
-    </section>
-
-    <!-- ── Grade de métricas ──────────────────────────────── -->
-    <section class="py-16 px-6">
-      <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-14">
-          <h2 class="mb-3">O que é medido?</h2>
-          <p style="color: var(--color-texto-suave);">9 categorias de métricas Lean extraídas diretamente do GitHub</p>
-        </div>
-        <div id="grade-metricas"
-             class="grid gap-4"
-             style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
-          <!-- Preenchido por apresentacao.ts -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Como funciona ─────────────────────────────────── -->
-    <section class="py-16 px-6" style="background: rgba(255,255,255,0.015); border-top: 1px solid var(--color-borda); border-bottom: 1px solid var(--color-borda);">
-      <div class="max-w-5xl mx-auto">
-        <h2 class="text-center mb-14">Como funciona</h2>
-        <div class="grid md:grid-cols-3 gap-6">
-          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.1s both;">
-            <div class="text-5xl mb-5 flex justify-center text-emerald-400"><i data-lucide="key" class="w-12 h-12"></i></div>
-            <h3 class="mb-3 text-lg">1. Autentique</h3>
-            <p class="text-sm" style="color: var(--color-texto-suave);">Entre com sua conta GitHub via OAuth. Seus dados são protegidos por JWT e cookie httponly.</p>
+      </nav>
+    </header>
+    <main id="conteudo" class="container">
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow"
+            ><span class="status-dot"></span> Engenharia de software ·
+            Lean</span
+          >
+          <h1>
+            Entenda o fluxo.<br /><span class="accent">Melhore a entrega.</span>
+          </h1>
+          <p class="hero-description">
+            Transforme a atividade do GitHub em uma leitura clara dos tempos de
+            entrega, trabalho em andamento e pontos de atenção do seu projeto.
+          </p>
+          <div class="actions">
+            <a href="#acesso" class="button primary" data-auth="deslogado"
+              >Começar análise
+              <i data-lucide="arrow-right" aria-hidden="true"></i></a
+            ><a
+              href="/painel.html"
+              class="button primary"
+              data-auth="logado"
+              hidden
+              >Abrir painel
+              <i data-lucide="arrow-right" aria-hidden="true"></i></a
+            ><a href="#metricas" class="button">Conhecer as métricas</a>
           </div>
-          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.2s both;">
-            <div class="text-5xl mb-5 flex justify-center text-[#4dcfff]"><i data-lucide="folder" class="w-12 h-12"></i></div>
-            <h3 class="mb-3 text-lg">2. Cadastre um repositório</h3>
-            <p class="text-sm" style="color: var(--color-texto-suave);">Informe o owner e o nome do repositório — público ou privado — que deseja analisar.</p>
+          <p class="small muted">
+            PRs, issues e commits. Métricas com contexto, sem adivinhação.
+          </p>
+        </div>
+        <aside
+          class="card hero-preview"
+          aria-label="Ilustração das etapas do fluxo"
+        >
+          <div class="preview-heading">
+            <span class="eyebrow">Uma visão do processo</span
+            ><i data-lucide="activity" aria-hidden="true"></i>
           </div>
-          <div class="glass-card glass-card-hover p-7 text-center flex flex-col items-center justify-start" style="animation: entrar-baixo 0.5s ease 0.3s both;">
-            <div class="text-5xl mb-5 flex justify-center text-[#a78bfa]"><i data-lucide="bar-chart-3" class="w-12 h-12"></i></div>
-            <h3 class="mb-3 text-lg">3. Obtenha o relatório</h3>
-            <p class="text-sm" style="color: var(--color-texto-suave);">A API coleta commits, PRs e issues, processa métricas Lean e detecta desperdícios automaticamente.</p>
+          <h2>Da abertura à entrega</h2>
+          <div class="flow-step">
+            <span>01</span>
+            <div>
+              <h3>Trabalho em andamento</h3>
+              <p>O que ainda precisa avançar</p>
+            </div>
+            <i data-lucide="layers" aria-hidden="true"></i>
+          </div>
+          <div class="flow-step">
+            <span>02</span>
+            <div>
+              <h3>Tempo de conclusão</h3>
+              <p>Quanto tempo o fluxo leva</p>
+            </div>
+            <i data-lucide="clock" aria-hidden="true"></i>
+          </div>
+          <div class="flow-step">
+            <span>03</span>
+            <div>
+              <h3>Entregas e qualidade</h3>
+              <p>O que foi concluído e onde melhorar</p>
+            </div>
+            <i data-lucide="check-circle" aria-hidden="true"></i>
+          </div>
+          <p class="preview-note">
+            <i data-lucide="info" aria-hidden="true"></i> Os indicadores
+            aparecem após consultar um repositório.
+          </p>
+        </aside>
+      </section>
+      <section class="section" id="metricas">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">O que observar</span>
+            <h2>Menos ruído. Mais entendimento.</h2>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ── CTA final ─────────────────────────────────────── -->
-    <section class="py-24 px-6 text-center">
-      <div class="max-w-2xl mx-auto">
-        <h2 class="mb-5">Pronto para começar?</h2>
-        <p class="mb-10" style="color: var(--color-texto-suave);">
-          Use a análise rápida sem precisar criar uma conta, ou entre com GitHub para salvar seus relatórios.
-        </p>
-        <div class="flex gap-4 justify-center flex-wrap">
-          <button id="btn-cta-login" data-auth="deslogado"
-                  class="px-7 py-3 rounded-xl text-base font-bold gradient-acento cursor-pointer border-0 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                  style="color: #070d1a;">
-            <i data-lucide="git-branch" class="w-5 h-5"></i> Entrar com GitHub
-          </button>
-          <a href="/relatorio-rapido.html"
-             class="px-7 py-3 rounded-xl text-base font-bold border transition-colors duration-200 flex items-center justify-center gap-2"
-             style="color: var(--color-texto); text-decoration: none; background: var(--color-fundo-card); border-color: var(--color-borda);">
-            <i data-lucide="search" class="w-5 h-5"></i> Análise sem cadastro
-          </a>
+        <div class="feature-grid">
+          <article class="card feature">
+            <i data-lucide="clock" aria-hidden="true"></i>
+            <h3>Tempo e fluxo</h3>
+            <p>
+              Compare os tempos médios de PRs e issues, o trabalho aberto e as
+              entregas recentes.
+            </p>
+          </article>
+          <article class="card feature">
+            <i data-lucide="bug" aria-hidden="true"></i>
+            <h3>Qualidade e atenção</h3>
+            <p>
+              Observe issues com a etiqueta bug e os sinais de desperdício
+              identificados na amostra.
+            </p>
+          </article>
+          <article class="card feature">
+            <i data-lucide="users" aria-hidden="true"></i>
+            <h3>Participação da equipe</h3>
+            <p>
+              Veja quantos autores aparecem na consulta e a concentração de
+              commits no autor mais ativo.
+            </p>
+          </article>
         </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- ── Rodapé ────────────────────────────────────────────── -->
-  <footer class="border-t py-8 px-6" style="border-color: var(--color-borda);">
-    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
-      <span class="text-sm" style="color: var(--color-texto-fraco);">
-        GitHub Lean Metrics — TCC · Desenvolvido com FastAPI + Vite + Tailwind v4
-      </span>
-      <span class="text-sm" style="color: var(--color-texto-fraco);">
-        Dados via <a href="https://docs.github.com/rest" target="_blank" rel="noopener"
-                     style="color: var(--color-acento);">GitHub REST API</a>
-      </span>
-    </div>
-  </footer>
-
-  <div id="area-toast"></div>
-  <script type="module" src="/src/apresentacao.ts"></script>
-</body>
+      </section>
+      <section class="access-section section" id="acesso">
+        <div>
+          <span class="eyebrow">Seu próximo passo</span>
+          <h2>Comece pelo seu repositório.</h2>
+          <p class="muted">
+            Entre ou crie uma conta para cadastrar projetos e consultar
+            relatórios. A análise rápida reutiliza cadastros existentes e
+            adiciona os novos ao painel.
+          </p>
+          <ol class="steps">
+            <li>Entre na sua conta</li>
+            <li>Informe o repositório GitHub</li>
+            <li>Explore as métricas e seus limites</li>
+          </ol>
+        </div>
+        <div class="card auth-card" data-auth="deslogado">
+          <div class="auth-tabs" role="group" aria-label="Modo de acesso">
+            <button type="button" data-mode="login" aria-pressed="true">
+              Entrar</button
+            ><button type="button" data-mode="cadastro" aria-pressed="false">
+              Criar conta
+            </button>
+          </div>
+          <form id="form-auth">
+            <div class="field" id="campo-username" hidden>
+              <label for="auth-username">Nome de usuário</label
+              ><input
+                id="auth-username"
+                minlength="3"
+                maxlength="50"
+                autocomplete="username"
+              />
+            </div>
+            <div class="field">
+              <label for="auth-email">E-mail</label
+              ><input
+                id="auth-email"
+                type="email"
+                required
+                autocomplete="email"
+                placeholder="voce@exemplo.com"
+              />
+            </div>
+            <div class="field">
+              <label for="auth-password">Senha</label
+              ><input
+                id="auth-password"
+                type="password"
+                required
+                minlength="8"
+                maxlength="72"
+                autocomplete="current-password"
+                aria-describedby="senha-ajuda"
+              /><span class="field-hint" id="senha-ajuda"
+                >Pelo menos 8 caracteres.</span
+              >
+            </div>
+            <p class="form-error" id="erro-auth" role="alert" hidden></p>
+            <button
+              class="button primary full-width"
+              id="btn-auth"
+              type="submit"
+            >
+              Entrar na conta
+            </button>
+          </form>
+        </div>
+        <div class="card auth-card" data-auth="logado" hidden>
+          <h3>Sua sessão está ativa</h3>
+          <p class="muted">Continue explorando seus projetos.</p>
+          <a href="/painel.html" class="button primary">Ir para o painel</a>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer container">
+      <span>LeanMetrics · Análise de fluxo de software</span
+      ><span>Dados do GitHub. Interpretação com contexto.</span>
+    </footer>
+    <script type="module" src="/src/apresentacao.ts"></script>
+  </body>
 </html>

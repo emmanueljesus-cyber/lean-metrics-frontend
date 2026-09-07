@@ -1,54 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Relatório Lean — GitHub Lean Metrics</title>
-  <meta name="description" content="Relatório Lean detalhado com métricas e sinais de desperdício do repositório." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="/src/style.css" />
-</head>
-<body>
-
-  <!-- Navbar -->
-  <nav class="sticky top-0 z-50 border-b"
-       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
-    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
-         style="color: var(--color-texto);">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
-        Lean<span style="color: var(--color-acento);">Metrics</span>
-      </a>
-      <div class="flex items-center gap-3">
-        <a href="/painel.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-200 flex items-center gap-1"
-           style="color: var(--color-texto-suave); background: var(--color-fundo-card); border-color: var(--color-borda); text-decoration: none;">
-          <i data-lucide="chevron-left" class="w-4 h-4"></i> Painel
-        </a>
-        <span id="nav-usuario"></span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Métricas Lean de repositórios GitHub com uma leitura clara do fluxo de trabalho."
+    />
+    <title>Relatório · LeanMetrics</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header">
+      <nav class="container navbar" aria-label="Navegação principal">
+        <a class="brand" href="/index.html"
+          ><span class="brand-mark"
+            ><i data-lucide="bar-chart-3" aria-hidden="true"></i></span
+          ><span>Lean<span class="accent">Metrics</span></span></a
+        >
+        <div class="nav-links">
+          <a href="/painel.html">Painel</a
+          ><a href="/relatorio-rapido.html">Análise rápida</a>
+        </div>
+        <div class="nav-actions">
+          <span
+            id="nav-usuario"
+            class="small muted"
+            data-auth="logado"
+            hidden
+          ></span
+          ><button
+            type="button"
+            class="icon-button"
+            id="btn-theme-toggle"
+            aria-label="Alternar tema"
+          ></button
+          ><a
+            class="button small-button"
+            href="/index.html?entrar=1#acesso"
+            data-auth="deslogado"
+            >Entrar</a
+          ><button
+            class="icon-button"
+            id="btn-logout"
+            data-auth="logado"
+            hidden
+            aria-label="Sair da conta"
+          >
+            <i data-lucide="log-out" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo" class="container page-main">
+      <a class="back-link" href="/painel.html"
+        ><i data-lucide="arrow-left" aria-hidden="true"></i> Voltar ao painel</a
+      >
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Relatório Lean</span>
+          <h1 class="repo-title" id="nome-repositorio">
+            Análise do repositório
+          </h1>
+          <p class="muted">
+            Uma leitura do fluxo a partir da atividade no GitHub.
+          </p>
+        </div>
+        <a
+          class="button"
+          id="link-github"
+          target="_blank"
+          rel="noopener noreferrer"
+          hidden
+          >Ver no GitHub <i data-lucide="external-link" aria-hidden="true"></i
+        ></a>
       </div>
-    </div>
-  </nav>
-
-  <main class="max-w-6xl mx-auto px-6 py-10">
-
-    <!-- Cabeçalho dinâmico -->
-    <div id="cabecalho-relatorio" class="mb-8">
-      <!-- Preenchido por relatorio.ts -->
-    </div>
-
-    <!-- Loading inicial -->
-    <div id="area-relatorio">
-      <div class="flex items-center justify-center gap-3 py-24"
-           style="color: var(--color-texto-suave);">
-        <div class="spinner"></div>
-        <span>Gerando relatório Lean...</span>
-      </div>
-    </div>
-
-  </main>
-
-  <div id="area-toast"></div>
-  <script type="module" src="/src/relatorio.ts"></script>
-</body>
+      <form class="card report-controls" id="form-atualizar">
+        <div class="field">
+          <label for="input-token"
+            >Token GitHub <span class="muted">(opcional)</span></label
+          ><input
+            id="input-token"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Para repositórios privados ou acesso autenticado"
+            aria-describedby="token-ajuda"
+          /><span class="field-hint" id="token-ajuda"
+            >Usado apenas na consulta. Não é salvo no navegador.</span
+          >
+        </div>
+        <button class="button primary" id="btn-atualizar" type="submit">
+          <i data-lucide="rotate-cw" aria-hidden="true"></i> Atualizar análise
+        </button>
+      </form>
+      <div id="area-relatorio"></div>
+    </main>
+    <footer class="site-footer container">
+      <span>LeanMetrics · Análise de fluxo de software</span
+      ><span>Dados do GitHub. Interpretação com contexto.</span>
+    </footer>
+    <script type="module" src="/src/relatorio.ts"></script>
+  </body>
 </html>

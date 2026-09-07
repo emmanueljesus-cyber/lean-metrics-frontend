@@ -1,155 +1,155 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel — GitHub Lean Metrics</title>
-  <meta name="description" content="Gerencie seus repositórios e acesse análises Lean de cada um." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="/src/style.css" />
-</head>
-<body>
-
-  <!-- Navbar -->
-  <nav class="sticky top-0 z-50 border-b"
-       style="background: rgba(7,13,26,0.85); backdrop-filter: blur(16px); border-color: var(--color-borda);">
-    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg no-underline"
-         style="color: var(--color-texto);">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center gradient-acento text-[#070d1a]"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
-        Lean<span style="color: var(--color-acento);">Metrics</span>
-      </a>
-      <div class="hidden md:flex items-center gap-1">
-        <a href="/relatorio-rapido.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium"
-           style="color: var(--color-texto-suave);">Análise Rápida</a>
-        <a href="/painel.html"
-           class="px-3 py-1.5 rounded-lg text-sm font-medium"
-           style="color: var(--color-acento); background: var(--color-acento-suave);">Painel</a>
-      </div>
-      <div class="flex items-center gap-3">
-        <span id="nav-usuario"></span>
-        <button id="btn-logout"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium border cursor-pointer"
-                style="color: var(--color-texto-suave); background: transparent; border-color: var(--color-borda);">
-          Sair
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Métricas Lean de repositórios GitHub com uma leitura clara do fluxo de trabalho."
+    />
+    <title>Painel · LeanMetrics</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header">
+      <nav class="container navbar" aria-label="Navegação principal">
+        <a class="brand" href="/index.html"
+          ><span class="brand-mark"
+            ><i data-lucide="bar-chart-3" aria-hidden="true"></i></span
+          ><span>Lean<span class="accent">Metrics</span></span></a
+        >
+        <div class="nav-links">
+          <a href="/painel.html" aria-current="page">Painel</a
+          ><a href="/relatorio-rapido.html">Análise rápida</a>
+        </div>
+        <div class="nav-actions">
+          <span
+            id="nav-usuario"
+            class="small muted"
+            data-auth="logado"
+            hidden
+          ></span
+          ><button
+            type="button"
+            class="icon-button"
+            id="btn-theme-toggle"
+            aria-label="Alternar tema"
+          ></button
+          ><a
+            class="button small-button"
+            href="/index.html?entrar=1#acesso"
+            data-auth="deslogado"
+            >Entrar</a
+          ><button
+            class="icon-button"
+            id="btn-logout"
+            data-auth="logado"
+            hidden
+            aria-label="Sair da conta"
+          >
+            <i data-lucide="log-out" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo" class="container page-main">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Seus projetos em perspectiva</span>
+          <h1>Repositórios</h1>
+          <p class="muted" id="total-repositorios">
+            Consulte e analise os repositórios cadastrados.
+          </p>
+        </div>
+        <button class="button primary" id="btn-adicionar">
+          <i data-lucide="plus" aria-hidden="true"></i> Adicionar repositório
         </button>
       </div>
-    </div>
-  </nav>
-
-  <main class="max-w-6xl mx-auto px-6 py-10">
-
-    <!-- Cabeçalho da página -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-3xl font-extrabold tracking-tight mb-1">Painel</h1>
-        <p id="subtitulo-usuario" style="color: var(--color-texto-suave); font-size: 0.9rem;">
-          Carregando...
-        </p>
+      <div id="area-repositorios" aria-busy="false"></div>
+    </main>
+    <dialog id="modal-repositorio" aria-labelledby="modal-titulo">
+      <div class="dialog-content">
+        <span class="eyebrow">Novo projeto</span>
+        <h2 id="modal-titulo">Adicionar repositório</h2>
+        <p class="muted">Cadastre o projeto para consultar suas métricas.</p>
+        <form id="form-repositorio">
+          <div class="field">
+            <label for="input-link-github"
+              >Link do GitHub <span class="muted">(opcional)</span></label
+            ><input
+              id="input-link-github"
+              type="text"
+              inputmode="url"
+              placeholder="https://github.com/owner/projeto"
+              autocomplete="off"
+            /><span class="field-hint"
+              >Cole o link para preencher os campos abaixo.</span
+            >
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="input-owner">Proprietário</label
+              ><input
+                id="input-owner"
+                required
+                maxlength="39"
+                placeholder="ex.: fastapi"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <div class="field">
+              <label for="input-repo">Repositório</label
+              ><input
+                id="input-repo"
+                required
+                maxlength="100"
+                placeholder="ex.: fastapi"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="input-descricao"
+              >Descrição <span class="muted">(opcional)</span></label
+            ><input
+              id="input-descricao"
+              maxlength="500"
+              placeholder="Uma breve descrição do projeto"
+            />
+          </div>
+          <div class="field">
+            <label for="input-branch">Branch padrão</label
+            ><input
+              id="input-branch"
+              maxlength="100"
+              value="main"
+              placeholder="main"
+              spellcheck="false"
+            /><span class="field-hint"
+              >Informe a branch do projeto; ela não é consultada
+              automaticamente.</span
+            >
+          </div>
+          <p class="form-error" id="erro-form" role="alert" hidden></p>
+          <div class="actions dialog-actions">
+            <button type="button" class="button" id="btn-cancelar-modal">
+              Cancelar</button
+            ><button type="submit" class="button primary" id="btn-salvar-repo">
+              Salvar repositório
+            </button>
+          </div>
+        </form>
       </div>
-      <button id="btn-adicionar"
-              class="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm gradient-acento border-0 cursor-pointer transition-all duration-200 hover:-translate-y-0.5"
-              style="color: #070d1a;">
-        <i data-lucide="plus" class="w-4 h-4"></i> Adicionar repositório
-      </button>
-    </div>
-
-    <!-- Área principal: lista de repositórios -->
-    <div id="area-repositorios" class="min-h-48">
-      <!-- Preenchido por painel.ts -->
-    </div>
-
-  </main>
-
-  <!-- Modal: adicionar repositório -->
-  <div id="modal-overlay"
-       style="position: fixed !important; inset: 0 !important; z-index: 9999 !important; display: none; align-items: center; justify-content: center; padding-left: 1rem; padding-right: 1rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-    <div id="modal" class="w-full max-w-md rounded-2xl p-7 shadow-2xl"
-         style="background: #0f1829; border: 1px solid var(--color-borda);">
-      <h2 class="text-xl font-bold mb-6">Adicionar repositório</h2>
-
-      <form id="form-repositorio" class="flex flex-col gap-4" novalidate>
-        <!-- Selector de Repositórios do GitHub (preenchido dinamicamente se logado) -->
-        <div id="wrapper-select-github" class="flex flex-col gap-1.5 hidden">
-          <label class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto-suave);" for="select-github-repo">
-            <i data-lucide="git-branch" class="w-4 h-4 text-emerald-400"></i> Seus repositórios no GitHub
-          </label>
-          <select id="select-github-repo"
-                  class="rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 cursor-pointer"
-                  style="background: var(--color-fundo-card); border: 1px solid var(--color-borda); color: var(--color-texto);">
-            <option value="">-- Selecione um repositório --</option>
-          </select>
-        </div>
-
-        <!-- Colar Link do GitHub -->
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-semibold flex items-center gap-1.5" style="color: var(--color-texto-suave);" for="input-link-github">
-            <i data-lucide="link" class="w-4 h-4 text-emerald-400"></i> Colar link do GitHub
-          </label>
-          <input id="input-link-github" type="url" placeholder="https://github.com/dono/projeto"
-                 class="rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
-                 style="background: var(--color-fundo-card); border: 1px solid var(--color-borda); color: var(--color-texto);"
-                 onfocus="this.style.borderColor='var(--color-acento)'"
-                 onblur="this.style.borderColor='var(--color-borda)'" />
-        </div>
-
-        <!-- Divisor Visual -->
-        <div class="flex items-center gap-2 my-1">
-          <div class="h-[1px] flex-1" style="background: var(--color-borda);"></div>
-          <span class="text-xs uppercase tracking-wider font-semibold" style="color: var(--color-texto-fraco);">Ou preencha manualmente</span>
-          <div class="h-[1px] flex-1" style="background: var(--color-borda);"></div>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-semibold" style="color: var(--color-texto-suave);" for="input-owner">
-            Owner (usuário ou organização)
-          </label>
-          <input id="input-owner" type="text" placeholder="ex: torvalds" required
-                 class="rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
-                 style="background: var(--color-fundo-card); border: 1px solid var(--color-borda); color: var(--color-texto);"
-                 onfocus="this.style.borderColor='var(--color-acento)'"
-                 onblur="this.style.borderColor='var(--color-borda)'" />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-semibold" style="color: var(--color-texto-suave);" for="input-repo">
-            Nome do repositório
-          </label>
-          <input id="input-repo" type="text" placeholder="ex: linux" required
-                 class="rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
-                 style="background: var(--color-fundo-card); border: 1px solid var(--color-borda); color: var(--color-texto);"
-                 onfocus="this.style.borderColor='var(--color-acento)'"
-                 onblur="this.style.borderColor='var(--color-borda)'" />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-semibold" style="color: var(--color-texto-suave);" for="input-descricao">
-            Descrição <span style="color: var(--color-texto-fraco);">(opcional)</span>
-          </label>
-          <input id="input-descricao" type="text" placeholder="Breve descrição do projeto"
-                 class="rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
-                 style="background: var(--color-fundo-card); border: 1px solid var(--color-borda); color: var(--color-texto);"
-                 onfocus="this.style.borderColor='var(--color-acento)'"
-                 onblur="this.style.borderColor='var(--color-borda)'" />
-        </div>
-        <div id="erro-form" class="hidden text-sm rounded-xl px-4 py-3"
-             style="background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.25); color: #ff4d6d;"></div>
-        <div class="flex gap-3 justify-end mt-2">
-          <button type="button" id="btn-cancelar-modal"
-                  class="px-4 py-2 rounded-lg text-sm font-medium border cursor-pointer"
-                  style="background: transparent; border-color: var(--color-borda); color: var(--color-texto-suave);">
-            Cancelar
-          </button>
-          <button type="submit" id="btn-salvar-repo"
-                  class="px-5 py-2 rounded-lg text-sm font-bold gradient-acento border-0 cursor-pointer"
-                  style="color: #070d1a;">
-            Salvar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="area-toast"></div>
-  <script type="module" src="/src/painel.ts"></script>
-</body>
+    </dialog>
+    <footer class="site-footer container">
+      <span>LeanMetrics · Análise de fluxo de software</span
+      ><span>Dados do GitHub. Interpretação com contexto.</span>
+    </footer>
+    <script type="module" src="/src/painel.ts"></script>
+  </body>
 </html>

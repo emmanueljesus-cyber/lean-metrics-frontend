@@ -1,70 +1,63 @@
-# GitHub Lean Metrics — Interface Frontend 📊✨
+# LeanMetrics — frontend
 
-Este repositório contém a interface de usuário (Frontend) do projeto **GitHub Lean Metrics**, uma ferramenta avançada desenvolvida para fins de Trabalho de Conclusão de Curso (TCC) que analisa repositórios de software sob a ótica dos princípios e métricas Lean de engenharia de software (como Lead Time, Cycle Time, Throughput, Rework, WIP e identificação de desperdícios de processos).
+Interface TypeScript + Vite para o backend FastAPI em `../tcc_lean`. Inclui cadastro e login por e-mail, painel paginado, análise de repositórios e gráficos Chart.js com temas claro e escuro.
 
-A interface foi projetada com foco em **desempenho extremo**, **estética ultra-premium (glassmorphism/dark mode nativo)** e **interatividade em tempo real** com gráficos analíticos complexos.
+## Executar
 
----
+Use Node.js 22.12+ (ou 20.19+) conforme o [Vite](https://vite.dev/guide/).
 
-## 🛠️ Tecnologias Utilizadas
-
-* **Core:** HTML5, CSS3, JavaScript & [TypeScript](https://www.typescriptlang.org/) (Tipagem estrita e robusta)
-* **Bundler & Dev Server:** [Vite v8](https://vite.dev/) (Carregamento e HMR instantâneos)
-* **Estilização (CSS):** [Tailwind CSS v4](https://tailwindcss.com/) (Estilização ultra-rápida baseada em utilitários de última geração)
-* **Gráficos Dinâmicos:** [Chart.js v4](https://www.chartjs.org/) (Visualização analítica interativa com suporte a light/dark mode em tempo real)
-* **Ícones Vetoriais:** [Lucide Icons](https://lucide.dev/) (Consistência visual limpa e moderna)
-
----
-
-## 🚀 Como Executar o Projeto Localmente
-
-Siga o passo a passo abaixo para rodar a interface em sua máquina:
-
-### 1. Pré-requisitos
-Certifique-se de ter o **Node.js** (versão 18 ou superior) instalado em seu sistema.
-
-### 2. Instalar as Dependências
-Clone este repositório, acesse a pasta raiz pelo terminal e execute:
-```bash
-npm install
-```
-
-### 3. Configurar a Conexão com o Backend
-Crie um arquivo `.env` na raiz do projeto (você pode copiar as instruções do `.env.example`):
-```bash
-cp .env.example .env
-```
-No arquivo `.env`, você pode configurar a variável `VITE_API_URL` para apontar para a API ativa do seu backend (por exemplo, em desenvolvimento local: `http://localhost:8000`).
-> 💡 **Nota:** Se você deixar a variável `VITE_API_URL` vazia, o Vite usará automaticamente o proxy interno configurado em `vite.config.ts` (`/api` → `http://localhost:8000`), o que é ideal para o desenvolvimento local sem problemas de CORS.
-
-### 4. Iniciar o Servidor de Desenvolvimento
-Inicie o servidor de desenvolvimento local:
-```bash
+```sh
+npm ci
 npm run dev
 ```
-A interface estará acessível no seu navegador (geralmente em `http://localhost:3000` ou `http://localhost:5173`).
 
----
+Acesse http://localhost:3000 e mantenha o backend na porta 8000. O proxy encaminha `/api` ao backend; o login envia JSON e as rotas protegidas recebem JWT no header Authorization.
 
-## 📦 Build para Produção (Deploy)
+Copie `.env.example` para `.env` caso precise configurar `VITE_API_URL`. A variável aceita a origem (ex.: `https://api.exemplo.com`) ou uma base terminada em `/api/v1`. Em produção, configure essa variável antes do build, ou um proxy `/api` na hospedagem. Configure também `CORS_ORIGINS` no backend.
 
-Para compilar e otimizar os arquivos estáticos para produção:
+## Build e validação
 
-```bash
+```sh
 npm run build
+npm run preview
 ```
 
-Este comando executa a verificação estrita do compilador TypeScript (`tsc`) e gera os arquivos estáticos otimizados (HTML, CSS e JS minimizados) dentro do diretório `/dist`. Esse diretório pode ser facilmente hospedado em qualquer serviço de arquivos estáticos modernos como Vercel, Netlify, GitHub Pages ou Cloudflare Pages.
+O build verifica os tipos e produz as quatro páginas em `dist/`. O preview também encaminha `/api` ao backend local.
 
----
+## Contrato e comportamento
 
-## 🎨 Principais Recursos Visuais
+- Login: `POST /api/v1/auth/login`; cadastro: `POST /api/v1/auth/register`.
+- Repositórios: `GET/POST /api/v1/repositories`.
+- Relatório: `GET /api/v1/repositories/{id}/report`.
+- JWT e identificação visual ficam em sessionStorage, limitados à sessão da aba. A API valida autorização; a leitura local da expiração serve apenas à interface.
+- O token GitHub permanece apenas no campo da página e é enviado no header `X-GitHub-Token`.
+- A análise rápida exige login, reutiliza um repositório cadastrado ou cria seu cadastro, e consulta o relatório.
+- O backend atual não oferece OAuth GitHub, exclusão, importação remota, perfil, histórico ou análise anônima. A interface não chama essas rotas.
+- A listagem do backend não isola repositórios por usuário; o painel reflete a lista retornada.
 
-1. **☀️ / 🌙 Chaveador de Temas:** Alternância instantânea entre Dark Mode e Light Mode com recalibração dinâmica automática dos gráficos analíticos do Chart.js.
-2. **⚡ Telemetria de Infraestrutura:** Badges dinâmicos indicando instantaneamente o status do cache da API (`CACHE HIT` ou `CACHE MISS`), acompanhado do tempo exato de latência de processamento e logs em tempo real na tela.
-3. **➕ Fluxo Inteligente de Cadastro:** Modal otimizado com preenchimento mágico automático a partir de URLs coladas do GitHub e integração de dropdown para importação silenciosa dos repositórios pessoais do desenvolvedor logado.
+## Visualizações
 
----
+Tempos em horas, contagens e percentuais usam gráficos separados. Os gráficos respeitam o [dimensionamento do Chart.js](https://www.chartjs.org/docs/latest/configuration/responsive.html), atualizam o tema sem nova consulta e oferecem valores textuais e tabela acessível, seguindo as [orientações de acessibilidade](https://www.chartjs.org/docs/latest/general/accessibility.html).
 
-Desenvolvido com carinho para a defesa de TCC de Engenharia de Software. 🎓🚀
-# lean-metrics-frontend
+As consultas atuais abrangem até 100 itens por categoria. Não há séries temporais no contrato: nenhuma evolução histórica é inventada. Valores nulos aparecem como “Sem dados”; zero permanece zero. O indicador de contribuidores é rotulado como amostra, pois o cálculo não filtra por 30 dias. O total de itens abertos do GitHub inclui PRs e issues.
+
+## Organização
+
+- `src/api.ts`: transporte HTTP e endpoints.
+- `src/tipos.ts`: contratos e explicações das métricas.
+- `src/autenticacao.ts`: sessão e navegação.
+- `src/visualizacao.ts`: relatórios e ciclo de vida dos gráficos.
+- `src/style.css`: layout responsivo e temas.
+- `src/apresentacao.ts`, `painel.ts`, `relatorio.ts`, `relatorio-rapido.ts`: fluxos das páginas.
+
+## Testes de navegador
+
+```sh
+npm test
+```
+
+A suíte usa o Google Chrome instalado (canal `chrome`) e inicia o Vite automaticamente. Se preferir o Chromium do Playwright, instale-o com `npx playwright install chromium` e remova `channel: 'chrome'` do arquivo de configuração.
+
+Os testes interceptam a API com fixtures no contrato do FastAPI. Validam login/cadastro, JWT e token GitHub, paginação, formulários, erros, valores nulos, proteção de texto dinâmico, troca de tema e larguras de 320, 390, 768 e 1440 pixels. As capturas ficam em `test-results/`.
+
+Esses testes não substituem uma execução de ponta a ponta com PostgreSQL, backend e GitHub reais.
