@@ -12,9 +12,9 @@ const metric = (name: string, value: number | null, unit = "count") => ({
   description: "Descrição da API",
 });
 const relatorio = {
-  repository_id: 1,
+  repositorio_id: 1,
   full_name: "fastapi/fastapi",
-  generated_at: "2026-09-07T15:30:00Z",
+  gerado_em: "2026-09-07T15:30:00Z",
   metrics: [
     metric("lead_time_pr_hours", 84.25, "hours"),
     metric("cycle_time_issue_hours", 38.5, "hours"),
@@ -39,31 +39,96 @@ const relatorio = {
     },
   ],
 };
+
+test("contrato português, metas persistentes, histórico e exportação", async ({ page }) => {
+  await sessao(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dados = {
+    ...relatorio,
+    metrics: [
+      metric("lead_time_pr_hours", 84.25, "horas"),
+      metric("waiting_time_pr_hours", 30, "horas"),
+      metric("wip_open_pull_requests", 12, "PRs"),
+      metric("wip_open_issues", 8, "issues"),
+      metric("defect_rate", 35, "%"),
+      metric("total_issues_sampled", 60, "issues"),
+      { ...metric("contributor_distribution", null, "json"), extra: { "dev <script>": 0.75, outro: 0.25 } },
+    ],
+    waste_signals: [{ category: "Espera", severity: "alta", message: "Atenção ao fluxo." }],
+  };
+  await mockRelatorio(page, dados);
+  let consultas = 0;
+  await page.route("**/api/v1/relatorios/repositorio/1/historico?*", route => {
+    consultas++;
+    return route.fulfill({ json: [{ ...dados, gerado_em: "2026-09-01T12:00:00Z" }, dados] });
+  });
+  await page.goto("/relatorio.html?id=1");
+  await expect(page.locator(".signal.high .severity")).toHaveText("Alta");
+  await expect(page.locator(".metric-value").filter({ hasText: "35%" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Explorar gráficos e metas" }).click();
+  await page.getByLabel("Meta de lead time (horas)").fill("100");
+  await page.getByRole("button", { name: "Salvar metas" }).click();
+  await expect(page.locator("[data-status]")).toHaveText("Metas salvas neste navegador.");
+  await expect(page.locator("[data-conteudo] script")).toHaveCount(0);
+  await semOverflow(page);
+  await page.getByRole("button", { name: "Carregar histórico" }).click();
+  await expect(page.getByRole("heading", { name: "Evolução do lead time" })).toBeVisible();
+  expect(consultas).toBe(1);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar JSON" }).click();
+  expect((await download).suggestedFilename()).toBe("lean-metrics-fastapi-fastapi.json");
+  await page.reload();
+  await page.getByRole("button", { name: "Explorar gráficos e metas" }).click();
+  await expect(page.getByLabel("Meta de lead time (horas)")).toHaveValue("100");
+  await page.getByRole("button", { name: "Ativar tema claro" }).click();
+  await expect(page.getByLabel("Meta de lead time (horas)")).toHaveValue("100");
+  await semOverflow(page);
+});
+
+test("importação preserva a branch remota e exclusão usa o cadastro local", async ({ page }) => {
+  await sessao(page);
+  await page.route("**/api/v1/repositorios?*", route => route.fulfill({ json: { items: [repo()], page: 1, page_size: 12, total: 1, total_pages: 1 } }));
+  await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [{ id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } }] }));
+  let criou = false, excluiu = false;
+  await page.route("**/api/v1/repositorios", async route => {
+    expect(route.request().postDataJSON()).toEqual({ nome_proprietario: "dev", nome_repositorio: "privado", description: "Projeto importado", branch_padrao: "develop" });
+    criou = true;
+    await route.fulfill({ status: 201, json: repo() });
+  });
+  await page.route("**/api/v1/repositorios/1", async route => {
+    expect(route.request().method()).toBe("DELETE"); excluiu = true;
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/painel.html");
+  await page.getByRole("button", { name: "Importar do GitHub" }).click();
+  await page.getByLabel("Repositório do GitHub").selectOption("0");
+  await page.getByRole("button", { name: "Revisar cadastro" }).click();
+  await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
+  await page.getByRole("button", { name: "Salvar repositório" }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(criou).toBe(true);
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Excluir", exact: true }).click();
+  await expect.poll(() => excluiu).toBe(true);
+});
 const repo = (id = 1) => ({
   id,
-  owner_name: "fastapi",
-  repository_name: "fastapi-" + id,
+  nome_proprietario: "fastapi",
+  nome_repositorio: "fastapi-" + id,
   description: "Um projeto para entender métricas Lean.",
-  default_branch: "main",
+  branch_padrao: "main",
   provider: "github",
-  is_active: true,
-  created_at: "2026-09-07T12:00:00Z",
-  updated_at: "2026-09-07T12:00:00Z",
-  owner_id: 1,
+  ativo: true,
+  criado_em: "2026-09-07T12:00:00Z",
+  atualizado_em: "2026-09-07T12:00:00Z",
+  usuario_id: 1,
 });
 async function sessao(page: Page, tema = "dark") {
-  await page.addInitScript(
-    ({ token, tema }) => {
-      sessionStorage.setItem("lean-metrics-token", token);
-      sessionStorage.setItem(
-        "lean-metrics-user",
-        JSON.stringify({ username: "Emmanuel" }),
-      );
-      localStorage.setItem("theme", tema);
-    },
-    { token, tema },
-  );
+  await page.context().addCookies([{ name: "access_token", value: token, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.route("**/api/v1/autenticacao/perfil", route => route.fulfill({ json: { id: 1, nome_usuario: "Emmanuel", email: "dev@example.com", ativo: true, url_avatar: null, tem_github: true, criado_em: "2026-09-08T00:00:00Z" } }));
+  await page.addInitScript(tema => localStorage.setItem("theme", tema), tema);
 }
+
 async function semOverflow(page: Page) {
   expect(
     await page.evaluate(
@@ -83,7 +148,7 @@ async function semOverflow(page: Page) {
   expect(fora).toEqual([]);
 }
 async function mockRelatorio(page: Page, dados = relatorio) {
-  await page.route("**/api/v1/repositories/1/report", (route) =>
+  await page.route("**/api/v1/relatorios/repositorio/1/gerar", (route) =>
     route.fulfill({ json: dados }),
   );
 }
@@ -150,71 +215,33 @@ test("início disponível sem backend, responsivo e com navegação móvel", asy
     });
   }
 });
-test("login envia JSON e JWT ao endpoint correto", async ({ page }) => {
-  let corpo: unknown;
-  await page.route("**/api/v1/auth/login", async (route) => {
-    corpo = route.request().postDataJSON();
-    expect(route.request().headers()["content-type"]).toContain(
-      "application/json",
-    );
-    await route.fulfill({
-      json: { access_token: token, token_type: "bearer" },
-    });
-  });
-  await page.route("**/api/v1/repositories?*", async (route) => {
-    expect(route.request().headers().authorization).toBe("Bearer " + token);
-    await route.fulfill({
-      json: { items: [], page: 1, page_size: 12, total: 0, total_pages: 0 },
-    });
+test("login usa GitHub OAuth e não oferece senha", async ({ page }) => {
+  await page.route("**/api/v1/autenticacao/perfil", route => route.fulfill({ json: null }));
+  await page.route("**/api/v1/autenticacao/github/entrar", route => route.fulfill({ contentType: "text/html", body: "Redirecionamento OAuth iniciado" }));
+  await page.goto("/");
+  await expect(page.getByLabel("Senha", { exact: true })).toHaveCount(0);
+  await page.locator("[data-login-github]").click();
+  await expect(page).toHaveURL(/autenticacao\/github\/entrar/);
+});
+
+test("logout chama API e encerra a sessão por cookie", async ({ page }) => {
+  await sessao(page);
+  await page.route("**/api/v1/autenticacao/sair", async route => {
+    expect(route.request().method()).toBe("POST");
+    expect(route.request().headers().cookie).toContain("access_token=");
+    await route.fulfill({ status: 204 });
   });
   await page.goto("/");
-  await page.getByLabel("E-mail", { exact: true }).fill("dev@example.com");
-  await page.getByLabel("Senha", { exact: true }).fill("senha12345");
-  await page.getByRole("button", { name: "Entrar na conta" }).click();
-  await expect(page).toHaveURL(/painel.html/);
-  await expect(page.getByText("Nenhum repositório por aqui")).toBeVisible();
-  expect(corpo).toEqual({ email: "dev@example.com", password: "senha12345" });
+  await page.locator("#btn-logout").click();
+  await expect(page).toHaveURL(/index.html/);
 });
-test("cadastro usa username e token aninhado", async ({ page }) => {
-  await page.route("**/api/v1/auth/register", async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      username: "dev_teste",
-      email: "dev@example.com",
-      password: "senha12345",
-    });
-    await route.fulfill({
-      status: 201,
-      json: {
-        id: 1,
-        username: "dev_teste",
-        email: "dev@example.com",
-        is_active: true,
-        token: { access_token: token, token_type: "bearer" },
-      },
-    });
-  });
-  await page.route("**/api/v1/repositories?*", (route) =>
-    route.fulfill({
-      json: { items: [], page: 1, page_size: 12, total: 0, total_pages: 0 },
-    }),
-  );
-  await page.goto("/");
-  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
-  await page.getByLabel("Nome de usuário").fill("dev_teste");
-  await page.getByLabel("E-mail", { exact: true }).fill("dev@example.com");
-  await page.getByLabel("Senha", { exact: true }).fill("senha12345");
-  await page
-    .getByRole("button", { name: "Criar conta", exact: true })
-    .last()
-    .click();
-  await expect(page).toHaveURL(/painel.html/);
-});
+
 test("pagina todos os repositórios e mantém nome longo seguro no celular", async ({
   page,
 }, testInfo) => {
   await sessao(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/v1/repositories?*", (route) => {
+  await page.route("**/api/v1/repositorios?*", (route) => {
     const pageNumber = Number(
       new URL(route.request().url()).searchParams.get("page"),
     );
@@ -225,7 +252,7 @@ test("pagina todos os repositórios e mantém nome longo seguro no celular", asy
             ? [
                 {
                   ...repo(),
-                  repository_name:
+                  nome_repositorio:
                     "repositorio-com-um-nome-muito-longo-".repeat(3),
                   description: '<img src=x onerror="alert(1)">',
                 },
@@ -255,18 +282,18 @@ test("modal móvel, URL validada, cadastro e retorno do foco", async ({
 }) => {
   await sessao(page);
   await page.setViewportSize({ width: 320, height: 640 });
-  await page.route("**/api/v1/repositories?*", (route) =>
+  await page.route("**/api/v1/repositorios?*", (route) =>
     route.fulfill({
       json: { items: [], page: 1, total: 0, page_size: 12, total_pages: 0 },
     }),
   );
   let criou = false;
-  await page.route("**/api/v1/repositories", async (route) => {
+  await page.route("**/api/v1/repositorios", async (route) => {
     expect(route.request().postDataJSON()).toEqual({
-      owner_name: "fastapi",
-      repository_name: "fastapi",
+      nome_proprietario: "fastapi",
+      nome_repositorio: "fastapi",
       description: null,
-      default_branch: "develop",
+      branch_padrao: "develop",
     });
     criou = true;
     await route.fulfill({ status: 201, json: repo() });
@@ -297,7 +324,7 @@ test("troca de tema não recarrega página nem consulta relatório", async ({
 }) => {
   await sessao(page);
   let chamadas = 0;
-  await page.route("**/api/v1/repositories/1/report", (route) => {
+  await page.route("**/api/v1/relatorios/repositorio/1/gerar", (route) => {
     chamadas++;
     return route.fulfill({ json: relatorio });
   });
@@ -345,7 +372,7 @@ test("erro da API permite repetir a consulta com token GitHub", async ({
 }) => {
   await sessao(page);
   let chamadas = 0;
-  await page.route("**/api/v1/repositories/1/report", async (route) => {
+  await page.route("**/api/v1/relatorios/repositorio/1/gerar", async (route) => {
     chamadas++;
     if (chamadas === 1)
       return route.fulfill({
@@ -355,7 +382,7 @@ test("erro da API permite repetir a consulta com token GitHub", async ({
     expect(route.request().headers()["x-github-token"]).toBe(
       "token-github-teste",
     );
-    expect(route.request().headers().authorization).toBe("Bearer " + token);
+    expect(route.request().headers().cookie).toContain("access_token=");
     return route.fulfill({ json: relatorio });
   });
   await page.goto("/relatorio.html?id=1");
@@ -369,43 +396,27 @@ test("erro da API permite repetir a consulta com token GitHub", async ({
     ),
   ).not.toContain("token-github-teste");
 });
-test("análise rápida reutiliza cadastro e impede envio duplicado", async ({
-  page,
-}) => {
-  await sessao(page);
-  await page.route("**/api/v1/repositories?*", (route) =>
-    route.fulfill({
-      json: {
-        items: [{ ...repo(), repository_name: "fastapi" }],
-        page: 1,
-        total: 1,
-        page_size: 100,
-        total_pages: 1,
-      },
-    }),
-  );
+test("análise pública não cadastra e impede envio duplicado", async ({ page }) => {
+  await page.route("**/api/v1/autenticacao/perfil", route => route.fulfill({ json: null }));
   let chamadas = 0;
-  await page.route("**/api/v1/repositories/1/report", async (route) => {
+  await page.route("**/api/v1/relatorios/relatorio-rapido?*", async route => {
     chamadas++;
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    await route.fulfill({ json: relatorio });
+    await new Promise(resolve => setTimeout(resolve, 150));
+    await route.fulfill({ json: { ...relatorio, repositorio_id: null } });
   });
-  await page.route("**/api/v1/repositories", () => {
-    throw new Error("Cadastro duplicado");
-  });
+  await page.route("**/api/v1/repositorios**", () => { throw new Error("Análise pública não deve cadastrar"); });
   await page.goto("/relatorio-rapido.html");
-  await page
-    .getByRole("button", { name: "fastapi/fastapi", exact: true })
-    .click();
+  await page.getByRole("button", { name: "fastapi/fastapi", exact: true }).click();
   expect(chamadas).toBe(0);
   await page.getByRole("button", { name: "Analisar repositório" }).click();
   await expect(page.locator("#btn-analisar")).toBeDisabled();
   await expect(page.locator("canvas")).toHaveCount(4);
   expect(chamadas).toBe(1);
 });
+
 test("identificador inválido não dispara relatório", async ({ page }) => {
   await sessao(page);
-  await page.route("**/api/**", () => {
+  await page.route("**/api/v1/relatorios/**", () => {
     throw new Error("Não deve consultar a API");
   });
   await page.goto("/relatorio.html?id=1abc");
@@ -418,44 +429,33 @@ test("sessão expirada pela API retorna ao login preservando destino", async ({
   page,
 }) => {
   await sessao(page);
-  await page.route("**/api/v1/repositories?*", (route) =>
+  await page.route("**/api/v1/repositorios?*", (route) =>
     route.fulfill({ status: 401, json: { detail: "Not authenticated" } }),
   );
   await page.goto("/painel.html");
   await expect(page).toHaveURL(/expirada=1/);
-  await expect(page.locator("#erro-auth")).toContainText("Sua sessão expirou");
+  await expect(page.locator("[data-login-github]")).toBeVisible();
 });
 
-test("análise rápida cadastra projeto novo e usa o ID retornado", async ({
-  page,
-}) => {
-  await sessao(page);
-  await page.setViewportSize({ width: 320, height: 800 });
-  await page.route("**/api/v1/repositories?*", (route) =>
-    route.fulfill({
-      json: { items: [], page: 1, page_size: 100, total: 0, total_pages: 0 },
-    }),
-  );
-  await page.route("**/api/v1/repositories", async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      owner_name: "fastapi",
-      repository_name: "fastapi",
-    });
-    return route.fulfill({ status: 201, json: repo(42) });
-  });
-  await page.route("**/api/v1/repositories/42/report", (route) =>
-    route.fulfill({ json: { ...relatorio, repository_id: 42 } }),
-  );
-  await page.goto("/relatorio-rapido.html");
-  await semOverflow(page);
-  await page
-    .getByLabel("Link do GitHub")
-    .fill("https://github.com/fastapi/fastapi");
-  await page.getByRole("button", { name: "Analisar repositório" }).click();
+test("URL de gráficos abre análise pública com parâmetros", async ({ page }) => {
+  await page.route("**/api/v1/autenticacao/perfil", route => route.fulfill({ json: null }));
+  await page.route("**/api/v1/relatorios/relatorio-rapido?*", route => route.fulfill({ json: { ...relatorio, repositorio_id: null } }));
+  await page.goto("/graficos.html?proprietario=fastapi&repositorio=fastapi");
   await expect(page.locator("#resultado-nome")).toHaveText("fastapi/fastapi");
-  await expect(page.locator("canvas")).toHaveCount(4);
-  await semOverflow(page);
+  await expect(page.getByRole("heading", { name: "Metas deste repositório" })).toBeVisible();
 });
+
+test("exportação PNG produz imagem do relatório", async ({ page }) => {
+  await sessao(page);
+  await mockRelatorio(page);
+  await page.goto("/relatorio.html?id=1");
+  await expect(page.locator(".metric-card")).toHaveCount(9);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar PNG" }).click();
+  await expect(page.locator("[data-status]")).toHaveText("Exportação concluída.");
+  expect((await download).suggestedFilename()).toBe("lean-metrics-fastapi-fastapi.png");
+});
+
 test("relatório sem métricas tem estado vazio e tabela consultável", async ({
   page,
 }) => {
@@ -466,6 +466,6 @@ test("relatório sem métricas tem estado vazio e tabela consultável", async ({
     page.getByRole("heading", { name: "Nenhuma métrica disponível" }),
   ).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(0);
-  await page.locator("summary").click();
+  await page.locator("summary").first().click();
   await expect(page.getByRole("table")).toBeVisible();
 });

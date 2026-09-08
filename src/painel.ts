@@ -59,7 +59,7 @@ async function carregar(page = paginaAtual): Promise<void> {
               e(formatarData(r.created_at)) +
               '</span><a class="button primary small-button" href="/relatorio.html?id=' +
               r.id +
-              '">Analisar <i data-lucide="arrow-right" aria-hidden="true"></i></a></div></article>',
+              '">Analisar <i data-lucide="arrow-right" aria-hidden="true"></i></a><button class="button small-button" data-excluir="' + r.id + '">Excluir</button></div></article>',
           )
           .join("") +
         "</div>"
@@ -85,6 +85,12 @@ async function carregar(page = paginaAtual): Promise<void> {
         .addEventListener("click", () => void carregar(page + 1));
     }
     document.getElementById("btn-primeiro")?.addEventListener("click", abrir);
+    area.querySelectorAll<HTMLButtonElement>("[data-excluir]").forEach(botao => botao.addEventListener("click", async () => {
+      if (!confirm("Excluir este cadastro e seu histórico de relatórios? O repositório no GitHub será mantido.")) return;
+      botao.disabled = true;
+      try { await api.repositorios.deletar(Number(botao.dataset.excluir)); await carregar(1); }
+      catch (falha) { botao.disabled = false; avisoRemoto.textContent = mensagemErro(falha); }
+    }));
   } catch (falha) {
     if (versao !== carregamento) return;
     area.innerHTML =
@@ -103,6 +109,30 @@ function abrir(): void {
   link.focus();
 }
 document.getElementById("btn-adicionar")!.addEventListener("click", abrir);
+const importar = document.createElement("button");
+importar.type = "button"; importar.className = "button"; importar.textContent = "Importar do GitHub";
+document.getElementById("btn-adicionar")!.after(importar);
+const avisoRemoto = document.createElement("p"); avisoRemoto.className = "muted"; avisoRemoto.setAttribute("role", "status");
+const remotos = document.createElement("div"); remotos.className = "card goals-form"; remotos.hidden = true;
+area.before(avisoRemoto, remotos);
+importar.addEventListener("click", async () => {
+  importar.disabled = true; avisoRemoto.textContent = "Consultando seus repositórios no GitHub…";
+  try {
+    const dados = await api.repositorios.listarDoGitHub();
+    remotos.hidden = false;
+    remotos.innerHTML = '<label for="repositorio-remoto">Repositório do GitHub</label><select id="repositorio-remoto"><option value="">Selecione um repositório</option>' + dados.map((r, i) => '<option value="' + i + '">' + e(r.full_name) + (r.private ? ' (privado)' : '') + '</option>').join('') + '</select><button class="button primary" id="confirmar-importacao">Revisar cadastro</button>';
+    avisoRemoto.textContent = dados.length + " repositórios encontrados.";
+    remotos.querySelector("button")!.addEventListener("click", () => {
+      const indice = remotos.querySelector("select")!.value;
+      if (indice === "") return;
+      const r = dados[Number(indice)]; abrir(); owner.value = r.owner.login; repo.value = r.name;
+      link.value = urlGithub(r.owner.login, r.name);
+      (document.getElementById("input-descricao") as HTMLInputElement).value = r.description ?? "";
+      (document.getElementById("input-branch") as HTMLInputElement).value = r.branch_padrao;
+    });
+  } catch (falha) { avisoRemoto.textContent = mensagemErro(falha); }
+  finally { importar.disabled = false; }
+});
 document.getElementById("btn-cancelar-modal")!.addEventListener("click", () => {
   if (!salvar.disabled) dialog.close();
 });
@@ -153,4 +183,4 @@ form.addEventListener("submit", async (event) => {
     setBtnCarregando(salvar, false);
   }
 });
-if (exigirAutenticacao()) void carregar();
+void exigirAutenticacao().then(ok => { if (ok) void carregar(); });

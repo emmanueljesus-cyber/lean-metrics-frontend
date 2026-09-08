@@ -10,6 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, "index.html"),
+        graficos: resolve(import.meta.dirname, "graficos.html"),
         painel: resolve(import.meta.dirname, "painel.html"),
         relatorio: resolve(import.meta.dirname, "relatorio.html"),
         relatorioRapido: resolve(import.meta.dirname, "relatorio-rapido.html"),

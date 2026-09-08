@@ -1,6 +1,6 @@
 import "./style.css";
-import { api, encontrarOuCadastrar } from "./api";
-import { iniciarInterface, exigirAutenticacao } from "./autenticacao";
+import { api } from "./api";
+import { iniciarInterface } from "./autenticacao";
 import {
   extrairGithubUrl,
   validarRepositorio,
@@ -52,17 +52,10 @@ form.addEventListener("submit", async (event) => {
   destruirGraficos();
   document.getElementById("resultado-nome")!.hidden = true;
   area.innerHTML = htmlCarregando(
-    "Preparando o cadastro e consultando o GitHub…",
+    "Consultando o GitHub e calculando as métricas…",
   );
   try {
-    const cadastro = await encontrarOuCadastrar(
-      owner.value.trim(),
-      repo.value.trim(),
-    );
-    const relatorio = await api.relatorios.gerar(
-      cadastro.id,
-      token.value.trim() || undefined,
-    );
+    const relatorio = await api.relatorios.rapido(owner.value.trim(), repo.value.trim(), token.value.trim() || undefined);
     const titulo = document.getElementById("resultado-nome")!;
     titulo.textContent = relatorio.full_name;
     titulo.hidden = false;
@@ -84,4 +77,4 @@ form.addEventListener("submit", async (event) => {
 const params = new URLSearchParams(location.search);
 owner.value = params.get("owner") ?? params.get("proprietario") ?? "";
 repo.value = params.get("repo") ?? params.get("repositorio") ?? "";
-exigirAutenticacao();
+if (owner.value && repo.value) form.requestSubmit();

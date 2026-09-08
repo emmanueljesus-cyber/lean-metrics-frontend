@@ -1,4 +1,5 @@
 import { Chart, registerables } from "chart.js";
+import { destruirAnaliseAvancada, renderizarAnaliseAvancada } from "./analise-avancada";
 import type { RelatorioRepositorio, ValorMetrica } from "./tipos";
 import { METRICAS, NOMES_CATEGORIAS } from "./tipos";
 import {
@@ -12,6 +13,7 @@ Chart.register(...registerables);
 const charts: Chart[] = [];
 let redesenhar: (() => void) | null = null;
 export function destruirGraficos(): void {
+  destruirAnaliseAvancada();
   charts.splice(0).forEach((chart) => chart.destroy());
   redesenhar = null;
 }
@@ -21,6 +23,10 @@ const valorValido = (m: ValorMetrica) =>
 const nomes = (m: ValorMetrica) => METRICAS[m.name]?.nome ?? m.name;
 const descricao = (m: ValorMetrica) =>
   METRICAS[m.name]?.descricao ?? m.description;
+const valorExibido = (m: ValorMetrica) =>
+  m.name === "most_active_branch_name" && typeof m.extra?.branch_name === "string"
+    ? m.extra.branch_name
+    : formatarValorMetrica(m.value, m.unit);
 function cor(nome: string): string {
   return getComputedStyle(document.documentElement)
     .getPropertyValue(nome)
@@ -105,7 +111,7 @@ export function renderizarRelatorio(
   const concentracao = validas.find((m) => m.name === "top_contributor_share");
   const temConcentracao =
     !!concentracao && concentracao.value! > 0 && concentracao.value! <= 1;
-  const ordem = { high: 0, medium: 1, low: 2 };
+  const ordem = { high: 0, alta: 0, medium: 1, média: 1, low: 2, baixa: 2 };
   const sinais = [...relatorio.waste_signals].sort(
     (a, b) => (ordem[a.severity] ?? 3) - (ordem[b.severity] ?? 3),
   );
@@ -124,7 +130,7 @@ export function renderizarRelatorio(
           '" aria-hidden="true"></i></div><p class="metric-value' +
           (valorValido(m) ? "" : " missing") +
           '">' +
-          e(formatarValorMetrica(m.value, m.unit)) +
+          e(valorExibido(m)) +
           '</p><p class="metric-description">' +
           e(descricao(m)) +
           "</p></article>",
@@ -162,13 +168,11 @@ export function renderizarRelatorio(
           .map(
             (s) =>
               '<article class="signal ' +
-              (["high", "medium", "low"].includes(s.severity)
-                ? s.severity
-                : "low") +
+              ({ high: "high", alta: "high", medium: "medium", média: "medium", low: "low", baixa: "low" }[s.severity] ?? "low") +
               '"><i data-lucide="alert-triangle" aria-hidden="true"></i><div><div class="signal-title"><h3>' +
               e(NOMES_CATEGORIAS[s.category] ?? s.category) +
               '</h3><span class="severity">' +
-              ({ high: "Alta", medium: "Média", low: "Baixa" }[s.severity] ??
+              ({ high: "Alta", alta: "Alta", medium: "Média", média: "Média", low: "Baixa", baixa: "Baixa" }[s.severity] ??
                 "Não classificada") +
               "</span></div><p>" +
               e(s.message) +
@@ -187,7 +191,7 @@ export function renderizarRelatorio(
           '<tr><th scope="row">' +
           e(nomes(m)) +
           "</th><td>" +
-          e(formatarValorMetrica(m.value, m.unit)) +
+          e(valorExibido(m)) +
           "</td><td>" +
           e(descricao(m)) +
           "</td></tr>",
@@ -340,5 +344,6 @@ export function renderizarRelatorio(
   };
   redesenhar = desenhar;
   desenhar();
+  renderizarAnaliseAvancada(area, relatorio);
   inicializarIcones();
 }

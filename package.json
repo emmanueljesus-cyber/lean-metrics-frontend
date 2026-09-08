@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc \u0026\u0026 vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "playwright test"
   },
@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
-    "chart.js": "^4.5.1",
+    "apexcharts": "^5.13.0",
+    "html2canvas": "^1.4.1",
     "lucide": "^1.16.0",
-    "tailwindcss": "^4.3.0"
+    "tailwindcss": "^4.3.0",
+    "chart.js": "^4.5.1"
   }
 }

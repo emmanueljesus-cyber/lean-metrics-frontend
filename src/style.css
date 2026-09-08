@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.goals-form { padding: 1.5rem; margin-block: 1rem; }
+.goals-form label { display: grid; gap: .5rem; min-width: 0; }
+.goals-form input { width: 100%; min-width: 0; padding: .65rem; border: 1px solid var(--border); border-radius: .5rem; }
+.goals-form select { display: block; width: 100%; max-width: 100%; margin-block: .75rem; }
+[data-conteudo] > .chart-card { margin-block: 1rem; }
+
 :root {
   font-family: "Segoe UI", Inter, system-ui, sans-serif;
   color-scheme: dark;

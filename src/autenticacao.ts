@@ -1,74 +1,56 @@
-import { obterToken, limparSessao } from "./api";
+import { api, API_BASE, ErroApiHTTP } from "./api";
 import { inicializarTema } from "./tema";
-import { inicializarIcones } from "./utilitarios";
+import { inicializarIcones, mensagemErro } from "./utilitarios";
+import type { UsuarioPerfil } from "./tipos";
 
-export function estaAutenticado(): boolean {
-  const token = obterToken();
-  if (!token) return false;
-  try {
-    const raw = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(atob(raw));
-    if (typeof payload.exp !== "number" || payload.exp * 1000 <= Date.now()) {
-      limparSessao();
-      return false;
-    }
-    return true; // Apenas estado visual: a API valida assinatura e acesso em cada requisição.
-  } catch {
-    limparSessao();
-    return false;
-  }
+let perfil: Promise<UsuarioPerfil | null> | null = null;
+export function buscarUsuarioAtual(): Promise<UsuarioPerfil | null> {
+  return perfil ??= api.auth.perfil().catch(erro => {
+    if (erro instanceof ErroApiHTTP && erro.status === 401) return null;
+    perfil = null; throw erro;
+  });
 }
-export function exigirAutenticacao(): boolean {
-  if (estaAutenticado()) return true;
-  location.replace(
-    "/index.html?entrar=1&next=" +
-      encodeURIComponent(location.pathname + location.search),
-  );
+export function iniciarLoginGitHub(): void {
+  const next = new URLSearchParams(location.search).get("next");
+  if (next?.startsWith("/") && !next.startsWith("//")) sessionStorage.setItem("lean-login-next", next);
+  location.assign(API_BASE + "/autenticacao/github/entrar");
+}
+export async function exigirAutenticacao(): Promise<boolean> {
+  try {
+    if (await buscarUsuarioAtual()) return true;
+    location.replace("/index.html?entrar=1&next=" + encodeURIComponent(location.pathname + location.search) + "#acesso");
+  } catch (erro) { mostrarErroAuth(erro); }
   return false;
 }
-export function destinoAposLogin(): string {
-  const next = new URLSearchParams(location.search).get("next");
-  if (next) {
-    const destino = new URL(next, location.origin);
-    if (
-      destino.origin === location.origin &&
-      ["/painel.html", "/relatorio.html", "/relatorio-rapido.html"].includes(
-        destino.pathname,
-      )
-    )
-      return destino.pathname + destino.search;
+function mostrarErroAuth(erro: unknown): void {
+  let aviso = document.getElementById("auth-feedback");
+  if (!aviso) {
+    aviso = document.createElement("p"); aviso.id = "auth-feedback"; aviso.className = "container form-error";
+    aviso.setAttribute("role", "alert"); document.querySelector("main")?.prepend(aviso);
   }
-  return "/painel.html";
+  aviso.textContent = mensagemErro(erro); aviso.hidden = false;
 }
-export function iniciarInterface(): void {
+export async function iniciarInterface(): Promise<UsuarioPerfil | null> {
   inicializarTema();
-  const logado = estaAutenticado();
-  document.querySelectorAll<HTMLElement>("[data-auth]").forEach((el) => {
-    el.hidden = (el.dataset.auth === "logado") !== logado;
+  document.querySelectorAll<HTMLElement>("[data-login-github]").forEach(btn => btn.addEventListener("click", iniciarLoginGitHub));
+  document.getElementById("btn-logout")?.addEventListener("click", async () => {
+    try { await api.auth.logout(); location.assign("/index.html"); } catch (erro) { mostrarErroAuth(erro); }
   });
-  const perfil = document.getElementById("nav-usuario");
-  if (perfil && logado) {
-    try {
-      perfil.textContent =
-        JSON.parse(sessionStorage.getItem("lean-metrics-user") ?? "{}")
-          .username ?? "Minha conta";
-    } catch {
-      perfil.textContent = "Minha conta";
-    }
-  }
-  document.getElementById("btn-logout")?.addEventListener("click", () => {
-    limparSessao();
-    location.assign("/index.html");
-  });
-  window.addEventListener(
-    "sessionexpired",
-    () => {
-      location.replace(
-        "/index.html?entrar=1&expirada=1&next=" +
-          encodeURIComponent(location.pathname + location.search),
-      );
-    },
-    { once: true },
-  );
+  window.addEventListener("sessionexpired", () => location.replace("/index.html?entrar=1&expirada=1&next=" + encodeURIComponent(location.pathname + location.search) + "#acesso"), { once: true });
   inicializarIcones();
+  try {
+    const usuario = await buscarUsuarioAtual();
+    document.querySelectorAll<HTMLElement>("[data-auth]").forEach(el => { el.hidden = (el.dataset.auth === "logado") !== !!usuario; });
+    const nome = document.getElementById("nav-usuario");
+    if (nome && usuario) nome.textContent = usuario.nome_usuario;
+    if (usuario && location.pathname === "/painel.html") {
+      const next = sessionStorage.getItem("lean-login-next");
+      sessionStorage.removeItem("lean-login-next");
+      if (next) {
+        const url = new URL(next, location.origin);
+        if (url.origin === location.origin && ["/relatorio.html", "/relatorio-rapido.html"].includes(url.pathname)) location.replace(url.pathname + url.search);
+      }
+    }
+    return usuario;
+  } catch (erro) { mostrarErroAuth(erro); return null; }
 }

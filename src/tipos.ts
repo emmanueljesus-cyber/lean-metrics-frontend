@@ -1,10 +1,5 @@
 /** Contratos HTTP do backend FastAPI em tcc_lean. */
-export interface UsuarioPerfil {
-  id: number;
-  username: string;
-  email: string;
-  is_active: boolean;
-}
+export interface UsuarioPerfil { id: number; nome_usuario: string; email: string; ativo: boolean; url_avatar: string | null; tem_github: boolean; criado_em: string }
 export interface RespostaToken {
   access_token: string;
   token_type: string;
@@ -13,6 +8,7 @@ export interface CadastroResposta extends UsuarioPerfil {
   token: RespostaToken;
 }
 export interface Repositorio {
+  private?: boolean;
   id: number;
   owner_name: string;
   repository_name: string;
@@ -38,19 +34,24 @@ export interface Pagina<T> {
   total_pages: number;
 }
 export interface ValorMetrica {
+  category?: string | null;
+  extra?: Record<string, unknown> | null;
   name: string;
   value: number | null;
   unit: string | null;
   description: string;
 }
-export type Severidade = "low" | "medium" | "high";
+export type Severidade = "low" | "medium" | "high" | "baixa" | "média" | "alta";
 export interface SinalDesperdicio {
   category: string;
   severity: Severidade;
   message: string;
 }
 export interface RelatorioRepositorio {
-  repository_id: number;
+  gerado_em: string;
+  repositorio_id: number | null;
+  performance?: { tempo_total: number; cache_hit: boolean; detalhes: string } | null;
+  repository_id: number | null;
   full_name: string;
   generated_at: string;
   metrics: ValorMetrica[];
@@ -115,3 +116,33 @@ export const METRICAS: Record<
     icone: "folder",
   },
 };
+
+export interface RepositorioGitHub { id: number; name: string; full_name: string; private: boolean; branch_padrao: string; description: string | null; html_url: string; owner: { login: string } }
+
+METRICAS["waiting_time_pr_hours"] = {"nome":"Espera estimada de PRs","descricao":"Estimativa entre abertura e última atualização; não representa tempo de revisão medido.","icone":"clock"};
+
+METRICAS["commit_velocity_daily"] = {"nome":"Velocidade de commits","descricao":"Média de commits por dia no intervalo da amostra.","icone":"activity"};
+
+METRICAS["days_since_last_commit"] = {"nome":"Dias sem commits","descricao":"Tempo desde o commit mais recente consultado.","icone":"clock"};
+
+METRICAS["most_active_branch_name"] = {"nome":"Branch mais ativa","descricao":"Branch com o commit mais recente entre as branches consultadas.","icone":"git-pull-request"};
+
+METRICAS["most_active_branch_days"] = {"nome":"Recência da branch ativa","descricao":"Dias desde o último commit na branch mais ativa.","icone":"clock"};
+
+METRICAS["abandoned_issues_count"] = {"nome":"Issues sem atividade","descricao":"Issues abertas sem atualização há mais de 30 dias.","icone":"folder"};
+
+METRICAS["rework_fix_commit_ratio"] = {"nome":"Commits corretivos","descricao":"Percentual de commits com termos como fix, bug ou corrigir; é uma aproximação de retrabalho.","icone":"layers"};
+
+METRICAS["chaotic_commit_ratio"] = {"nome":"Mensagens curtas de commit","descricao":"Percentual de mensagens com menos de 10 caracteres.","icone":"info"};
+
+METRICAS["rejected_pr_ratio"] = {"nome":"PRs fechadas sem merge","descricao":"Participação das PRs encerradas sem merge na amostra.","icone":"git-pull-request"};
+
+METRICAS["contributor_distribution"] = {"nome":"Distribuição por autor","descricao":"Participação de cada autor nos commits identificados.","icone":"users"};
+
+METRICAS["total_commits_sampled"] = {"nome":"Commits consultados","descricao":"Tamanho da amostra de commits.","icone":"folder"};
+
+METRICAS["total_prs_sampled"] = {"nome":"PRs consultadas","descricao":"Tamanho da amostra de pull requests.","icone":"folder"};
+
+METRICAS["total_issues_sampled"] = {"nome":"Issues consultadas","descricao":"Tamanho da amostra de issues (sem pull requests).","icone":"folder"};
+
+export const NOMES_METRICAS = Object.fromEntries(Object.entries(METRICAS).map(([k,v]) => [k,v.nome]));

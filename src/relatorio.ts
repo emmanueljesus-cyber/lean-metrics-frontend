@@ -49,7 +49,8 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();
   void carregar();
 });
-if (exigirAutenticacao()) {
+void exigirAutenticacao().then(ok => {
+ if (ok) {
   if (id) void carregar();
   else {
     area.innerHTML = htmlErro(
@@ -59,3 +60,4 @@ if (exigirAutenticacao()) {
     inicializarIcones();
   }
 }
+});

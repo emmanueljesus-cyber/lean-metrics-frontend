@@ -164,69 +164,16 @@
           <span class="eyebrow">Seu próximo passo</span>
           <h2>Comece pelo seu repositório.</h2>
           <p class="muted">
-            Entre ou crie uma conta para cadastrar projetos e consultar
-            relatórios. A análise rápida reutiliza cadastros existentes e
-            adiciona os novos ao painel.
+            Entre com GitHub para gerenciar seus projetos e consultar o histórico. Você também pode analisar repositórios públicos sem login ou cadastro.
           </p>
           <ol class="steps">
-            <li>Entre na sua conta</li>
+            <li>Entre com GitHub ou use a análise pública</li>
             <li>Informe o repositório GitHub</li>
             <li>Explore as métricas e seus limites</li>
           </ol>
         </div>
-        <div class="card auth-card" data-auth="deslogado">
-          <div class="auth-tabs" role="group" aria-label="Modo de acesso">
-            <button type="button" data-mode="login" aria-pressed="true">
-              Entrar</button
-            ><button type="button" data-mode="cadastro" aria-pressed="false">
-              Criar conta
-            </button>
-          </div>
-          <form id="form-auth">
-            <div class="field" id="campo-username" hidden>
-              <label for="auth-username">Nome de usuário</label
-              ><input
-                id="auth-username"
-                minlength="3"
-                maxlength="50"
-                autocomplete="username"
-              />
-            </div>
-            <div class="field">
-              <label for="auth-email">E-mail</label
-              ><input
-                id="auth-email"
-                type="email"
-                required
-                autocomplete="email"
-                placeholder="voce@exemplo.com"
-              />
-            </div>
-            <div class="field">
-              <label for="auth-password">Senha</label
-              ><input
-                id="auth-password"
-                type="password"
-                required
-                minlength="8"
-                maxlength="72"
-                autocomplete="current-password"
-                aria-describedby="senha-ajuda"
-              /><span class="field-hint" id="senha-ajuda"
-                >Pelo menos 8 caracteres.</span
-              >
-            </div>
-            <p class="form-error" id="erro-auth" role="alert" hidden></p>
-            <button
-              class="button primary full-width"
-              id="btn-auth"
-              type="submit"
-            >
-              Entrar na conta
-            </button>
-          </form>
-        </div>
-        <div class="card auth-card" data-auth="logado" hidden>
+        <div class="card auth-card" data-auth="deslogado"><span class="eyebrow">Sua conta GitHub</span><h3>Conecte seus projetos</h3><p class="muted">Entre com GitHub para importar repositórios, salvar relatórios e acompanhar o histórico.</p><button type="button" data-login-github class="button primary full-width">Entrar com GitHub</button><p id="auth-feedback" class="form-error" role="alert" hidden></p><a class="back-link" href="/relatorio-rapido.html">Analisar um projeto público sem entrar</a></div>
+<div class="card auth-card" data-auth="logado" hidden>
           <h3>Sua sessão está ativa</h3>
           <p class="muted">Continue explorando seus projetos.</p>
           <a href="/painel.html" class="button primary">Ir para o painel</a>
