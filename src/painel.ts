@@ -120,16 +120,30 @@ importar.addEventListener("click", async () => {
   try {
     const dados = await api.repositorios.listarDoGitHub();
     remotos.hidden = false;
-    remotos.innerHTML = '<label for="repositorio-remoto">Repositório do GitHub</label><select id="repositorio-remoto"><option value="">Selecione um repositório</option>' + dados.map((r, i) => '<option value="' + i + '">' + e(r.full_name) + (r.private ? ' (privado)' : '') + '</option>').join('') + '</select><button class="button primary" id="confirmar-importacao">Revisar cadastro</button>';
     avisoRemoto.textContent = dados.length + " repositórios encontrados.";
-    remotos.querySelector("button")!.addEventListener("click", () => {
-      const indice = remotos.querySelector("select")!.value;
-      if (indice === "") return;
-      const r = dados[Number(indice)]; abrir(); owner.value = r.owner.login; repo.value = r.name;
-      link.value = urlGithub(r.owner.login, r.name);
+    remotos.innerHTML =
+      '<div class="github-import-header"><div><p class="eyebrow">Sua conta GitHub</p><h2>Escolha um repositório</h2><p class="muted">Revise os dados antes de salvar no painel.</p></div><button type="button" class="button small-button" id="fechar-importacao">Fechar</button></div>' +
+      (dados.length
+        ? '<div class="github-import-grid" role="list">' + dados.map((r, i) =>
+          '<article class="github-import-item" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a><button type="button" class="button primary small-button" data-importar-repositorio="' + i + '" aria-label="Selecionar ' + e(r.full_name) + '">Selecionar</button></div></article>'
+        ).join('') + '</div>'
+        : '<div class="estado"><p>Nenhum repositório foi retornado pelo GitHub.</p></div>');
+    remotos.querySelector("#fechar-importacao")!.addEventListener("click", () => {
+      remotos.hidden = true;
+      avisoRemoto.textContent = "";
+      importar.focus();
+    });
+    remotos.querySelectorAll<HTMLButtonElement>("[data-importar-repositorio]").forEach(botao => botao.addEventListener("click", () => {
+      const r = dados[Number(botao.dataset.importarRepositorio)];
+      if (!r) return;
+      abrir();
+      owner.value = r.owner.login;
+      repo.value = r.name;
+      link.value = r.html_url || urlGithub(r.owner.login, r.name);
       (document.getElementById("input-descricao") as HTMLInputElement).value = r.description ?? "";
       (document.getElementById("input-branch") as HTMLInputElement).value = r.branch_padrao;
-    });
+    }));
+    inicializarIcones();
   } catch (falha) { avisoRemoto.textContent = mensagemErro(falha); }
   finally { importar.disabled = false; }
 });

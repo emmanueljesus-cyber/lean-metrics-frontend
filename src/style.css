@@ -4,7 +4,21 @@
 .goals-form { padding: 1.5rem; margin-block: 1rem; }
 .goals-form label { display: grid; gap: .5rem; min-width: 0; }
 .goals-form input { width: 100%; min-width: 0; padding: .65rem; border: 1px solid var(--border); border-radius: .5rem; }
-.goals-form select { display: block; width: 100%; max-width: 100%; margin-block: .75rem; }
+.github-import-header,
+.github-import-title,
+.github-import-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.github-import-header { align-items: flex-start; margin-bottom: 1.25rem; }
+.github-import-header h2,
+.github-import-title h3 { margin: 0; overflow-wrap: anywhere; }
+.github-import-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+.github-import-item { display: flex; min-width: 0; flex-direction: column; gap: .75rem; padding: 1rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--surface); }
+.github-import-description { flex: 1; }
+.github-import-actions { justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 520px) {
+  .github-import-header,
+  .github-import-actions { align-items: stretch; flex-direction: column; }
+  .github-import-actions .button { justify-content: center; width: 100%; }
+}
 [data-conteudo] > .chart-card { margin-block: 1rem; }
 
 :root {

@@ -87,6 +87,7 @@ test("contrato português, metas persistentes, histórico e exportação", async
 
 test("importação preserva a branch remota e exclusão usa o cadastro local", async ({ page }) => {
   await sessao(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/api/v1/repositorios?*", route => route.fulfill({ json: { items: [repo()], page: 1, page_size: 12, total: 1, total_pages: 1 } }));
   await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [{ id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } }] }));
   let criou = false, excluiu = false;
@@ -101,8 +102,11 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   });
   await page.goto("/painel.html");
   await page.getByRole("button", { name: "Importar do GitHub" }).click();
-  await page.getByLabel("Repositório do GitHub").selectOption("0");
-  await page.getByRole("button", { name: "Revisar cadastro" }).click();
+  await expect(page.getByRole("heading", { name: "privado" })).toBeVisible();
+  await expect(page.getByText("Projeto importado")).toBeVisible();
+  await expect(page.getByText("Branch padrão:")).toContainText("develop");
+  await semOverflow(page);
+  await page.getByRole("button", { name: "Selecionar dev/privado" }).click();
   await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
   await page.getByRole("button", { name: "Salvar repositório" }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
