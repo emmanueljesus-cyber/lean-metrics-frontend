@@ -38,8 +38,22 @@ export function renderizarAnaliseAvancada(area: HTMLElement, relatorio: Relatori
       container.append(canvas); card.append(container);
       conteudo.append(card);
       const light = document.documentElement.classList.contains("light");
+      const paleta = light
+        ? ["#087b65", "#2563eb", "#7c3aed", "#d97706", "#dc2626"]
+        : ["#43d9af", "#60a5fa", "#a78bfa", "#fbbf24", "#fb7185"];
+      const coresBarras = labels.map((_, indice) => paleta[indice % paleta.length]);
       charts.push(new Chart(canvas, {
-        type: tipo, data: { labels: datas ?? labels, datasets: [{ label: titulo, data: valores, backgroundColor: light ? "#087b65" : "#43d9af", borderColor: light ? "#087b65" : "#43d9af", spanGaps: false }] },
+        type: tipo, data: { labels: datas ?? labels, datasets: [{
+          label: titulo,
+          data: valores,
+          // Categorias e comparações recebem cores distintas; uma série
+          // histórica mantém uma cor única para representar continuidade.
+          backgroundColor: tipo === "line" ? paleta[0] + "33" : coresBarras,
+          borderColor: tipo === "line" ? paleta[0] : coresBarras,
+          borderWidth: tipo === "line" ? 2 : 0,
+          tension: tipo === "line" ? 0.25 : 0,
+          spanGaps: false,
+        }] },
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: light ? "#334155" : "#cbd5e1" } }, y: { beginAtZero: true, ticks: { color: light ? "#334155" : "#cbd5e1" } } } }
       }));
     }

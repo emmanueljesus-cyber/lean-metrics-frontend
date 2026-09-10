@@ -22,10 +22,39 @@ const form = document.getElementById("form-repositorio") as HTMLFormElement;
 const owner = document.getElementById("input-owner") as HTMLInputElement;
 const repo = document.getElementById("input-repo") as HTMLInputElement;
 const link = document.getElementById("input-link-github") as HTMLInputElement;
+const branch = document.getElementById("input-branch") as HTMLSelectElement;
+const branchHint = document.getElementById("branch-hint")!;
 const erro = document.getElementById("erro-form")!;
 const salvar = document.getElementById("btn-salvar-repo") as HTMLButtonElement;
 let paginaAtual = 1;
 let carregamento = 0;
+let carregamentoBranches = 0;
+let branchEscolhida = "main";
+
+function preencherBranches(branches: string[], selecionada = "main"): void {
+  const nomes = Array.from(new Set([selecionada, ...branches].filter(Boolean)));
+  branch.innerHTML = nomes.map(nome => '<option value="' + e(nome) + '">' + e(nome) + "</option>").join("");
+  branch.value = selecionada;
+  branchEscolhida = selecionada;
+  branch.disabled = false;
+}
+
+async function carregarBranches(proprietario: string, repositorio: string, selecionada = "main"): Promise<void> {
+  const versao = ++carregamentoBranches;
+  branch.disabled = true;
+  branch.innerHTML = '<option value="">Carregando branches…</option>';
+  branchHint.textContent = "Consultando as branches no GitHub…";
+  try {
+    const branches = await api.repositorios.listarBranchesDoGitHub(proprietario, repositorio);
+    if (versao !== carregamentoBranches) return;
+    preencherBranches(branches, selecionada);
+    branchHint.textContent = branches.length ? branches.length + " branches encontradas no GitHub." : "O GitHub não retornou branches; será usada a branch padrão.";
+  } catch (falha) {
+    if (versao !== carregamentoBranches) return;
+    preencherBranches([], selecionada);
+    branchHint.textContent = mensagemErro(falha) + " A branch padrão foi mantida.";
+  }
+}
 async function carregar(page = paginaAtual): Promise<void> {
   const versao = ++carregamento;
   area.innerHTML = htmlCarregando("Carregando repositórios…");
@@ -104,6 +133,8 @@ async function carregar(page = paginaAtual): Promise<void> {
 }
 function abrir(): void {
   form.reset();
+  preencherBranches([], "main");
+  branchHint.textContent = "As branches serão carregadas do GitHub depois que você informar o repositório.";
   erro.hidden = true;
   dialog.showModal();
   link.focus();
@@ -122,18 +153,20 @@ importar.addEventListener("click", async () => {
     remotos.hidden = false;
     avisoRemoto.textContent = dados.length + " repositórios encontrados.";
     remotos.innerHTML =
-      '<div class="github-import-header"><div><p class="eyebrow">Sua conta GitHub</p><h2>Escolha um repositório</h2><p class="muted">Revise os dados antes de salvar no painel.</p></div><button type="button" class="button small-button" id="fechar-importacao">Fechar</button></div>' +
+      '<div class="github-import-header"><div><p class="eyebrow">Sua conta GitHub</p><h2>Escolha um repositório</h2><p class="muted">Escolha o projeto e confirme a branch antes da análise.</p></div><button type="button" class="button small-button" id="alternar-importacao" aria-expanded="true">Recolher lista</button></div><div id="conteudo-importacao">' +
       (dados.length
         ? '<div class="github-import-grid" role="list">' + dados.map((r, i) =>
           '<article class="github-import-item" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a><button type="button" class="button primary small-button" data-importar-repositorio="' + i + '" aria-label="Selecionar ' + e(r.full_name) + '">Selecionar</button></div></article>'
         ).join('') + '</div>'
-        : '<div class="estado"><p>Nenhum repositório foi retornado pelo GitHub.</p></div>');
-    remotos.querySelector("#fechar-importacao")!.addEventListener("click", () => {
-      remotos.hidden = true;
-      avisoRemoto.textContent = "";
-      importar.focus();
+        : '<div class="estado"><p>Nenhum repositório foi retornado pelo GitHub.</p></div>') + '</div>';
+    remotos.querySelector("#alternar-importacao")!.addEventListener("click", event => {
+      const botao = event.currentTarget as HTMLButtonElement;
+      const conteudo = remotos.querySelector<HTMLElement>("#conteudo-importacao")!;
+      conteudo.hidden = !conteudo.hidden;
+      botao.setAttribute("aria-expanded", String(!conteudo.hidden));
+      botao.textContent = conteudo.hidden ? "Expandir lista" : "Recolher lista";
     });
-    remotos.querySelectorAll<HTMLButtonElement>("[data-importar-repositorio]").forEach(botao => botao.addEventListener("click", () => {
+    remotos.querySelectorAll<HTMLButtonElement>("[data-importar-repositorio]").forEach(botao => botao.addEventListener("click", async () => {
       const r = dados[Number(botao.dataset.importarRepositorio)];
       if (!r) return;
       abrir();
@@ -141,7 +174,7 @@ importar.addEventListener("click", async () => {
       repo.value = r.name;
       link.value = r.html_url || urlGithub(r.owner.login, r.name);
       (document.getElementById("input-descricao") as HTMLInputElement).value = r.description ?? "";
-      (document.getElementById("input-branch") as HTMLInputElement).value = r.branch_padrao;
+      await carregarBranches(r.owner.login, r.name, r.branch_padrao);
     }));
     inicializarIcones();
   } catch (falha) { avisoRemoto.textContent = mensagemErro(falha); }
@@ -161,6 +194,14 @@ link.addEventListener("input", () => {
     erro.hidden = true;
   }
 });
+link.addEventListener("change", () => {
+  const parsed = extrairGithubUrl(link.value);
+  if (parsed) void carregarBranches(parsed.owner, parsed.repo);
+});
+repo.addEventListener("change", () => {
+  if (validarRepositorio(owner.value.trim(), repo.value.trim())) void carregarBranches(owner.value.trim(), repo.value.trim());
+});
+branch.addEventListener("change", () => { branchEscolhida = branch.value; });
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (salvar.disabled || !form.reportValidity()) return;
@@ -173,23 +214,19 @@ form.addEventListener("submit", async (event) => {
     erro.hidden = false;
     return;
   }
+  const dadosCadastro = {
+    owner_name: owner.value.trim(),
+    repository_name: repo.value.trim(),
+    description:
+      (document.getElementById("input-descricao") as HTMLInputElement).value.trim() || null,
+    default_branch: branchEscolhida || "main",
+  };
   setBtnCarregando(salvar, true);
   erro.hidden = true;
   try {
-    await api.repositorios.criar({
-      owner_name: owner.value.trim(),
-      repository_name: repo.value.trim(),
-      description:
-        (
-          document.getElementById("input-descricao") as HTMLInputElement
-        ).value.trim() || null,
-      default_branch:
-        (
-          document.getElementById("input-branch") as HTMLInputElement
-        ).value.trim() || "main",
-    });
+    const criado = await api.repositorios.criar(dadosCadastro);
     dialog.close();
-    await carregar(1);
+    location.assign("/relatorio.html?id=" + criado.id);
   } catch (falha) {
     erro.textContent = mensagemErro(falha);
     erro.hidden = false;

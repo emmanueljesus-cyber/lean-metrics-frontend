@@ -23,7 +23,7 @@
         >
         <div class="nav-links">
           <a href="/painel.html" aria-current="page">Painel</a
-          ><a href="/relatorio-rapido.html">Análise rápida</a>
+          ><a href="/relatorio-rapido.html" data-auth="deslogado" hidden>Análise rápida</a>
         </div>
         <div class="nav-actions">
           <span
@@ -124,15 +124,11 @@
           </div>
           <div class="field">
             <label for="input-branch">Branch padrão</label
-            ><input
+            ><select
               id="input-branch"
-              maxlength="100"
-              value="main"
-              placeholder="main"
-              spellcheck="false"
-            /><span class="field-hint"
-              >Informe a branch do projeto; ela não é consultada
-              automaticamente.</span
+              required
+            ><option value="main">main</option></select><span class="field-hint" id="branch-hint"
+              >As branches serão carregadas do GitHub depois que você informar o repositório.</span
             >
           </div>
           <p class="form-error" id="erro-form" role="alert" hidden></p>
@@ -140,7 +136,7 @@
             <button type="button" class="button" id="btn-cancelar-modal">
               Cancelar</button
             ><button type="submit" class="button primary" id="btn-salvar-repo">
-              Salvar repositório
+              Salvar e analisar
             </button>
           </div>
         </form>

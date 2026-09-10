@@ -30,6 +30,11 @@ function mostrarErroAuth(erro: unknown): void {
   }
   aviso.textContent = mensagemErro(erro); aviso.hidden = false;
 }
+function aplicarEstadoAutenticacao(usuario: UsuarioPerfil | null): void {
+  document.querySelectorAll<HTMLElement>("[data-auth]").forEach(el => {
+    el.hidden = (el.dataset.auth === "logado") !== !!usuario;
+  });
+}
 export async function iniciarInterface(): Promise<UsuarioPerfil | null> {
   inicializarTema();
   document.querySelectorAll<HTMLElement>("[data-login-github]").forEach(btn => btn.addEventListener("click", iniciarLoginGitHub));
@@ -40,7 +45,7 @@ export async function iniciarInterface(): Promise<UsuarioPerfil | null> {
   inicializarIcones();
   try {
     const usuario = await buscarUsuarioAtual();
-    document.querySelectorAll<HTMLElement>("[data-auth]").forEach(el => { el.hidden = (el.dataset.auth === "logado") !== !!usuario; });
+    aplicarEstadoAutenticacao(usuario);
     const nome = document.getElementById("nav-usuario");
     if (nome && usuario) nome.textContent = usuario.nome_usuario;
     if (usuario && location.pathname === "/painel.html") {
@@ -52,5 +57,5 @@ export async function iniciarInterface(): Promise<UsuarioPerfil | null> {
       }
     }
     return usuario;
-  } catch (erro) { mostrarErroAuth(erro); return null; }
+  } catch (erro) { aplicarEstadoAutenticacao(null); mostrarErroAuth(erro); return null; }
 }

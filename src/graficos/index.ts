@@ -6,6 +6,9 @@
  */
 
 import { inicializarIcones } from '../utilitarios';
+import { iniciarInterface } from '../autenticacao';
+
+void iniciarInterface();
 
 // ── Helpers UI ────────────────────────────────────────────────────
 

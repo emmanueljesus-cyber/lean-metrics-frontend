@@ -29,7 +29,7 @@
 
       <!-- Links de navegação -->
       <div class="hidden md:flex items-center gap-1">
-        <a href="/relatorio-rapido.html"
+        <a href="/relatorio-rapido.html" data-auth="deslogado" hidden
            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
            style="color: var(--color-texto-suave);"
            onmouseover="this.style.color='var(--color-texto)';this.style.background='var(--color-fundo-card)'"
@@ -146,7 +146,7 @@
     <div class="flex gap-3">
       <button onclick="history.back()" class="g-btn g-btn-outline">← Voltar</button>
       <a href="/graficos.html" class="g-btn g-btn-outline">Nova busca</a>
-      <a href="/relatorio-rapido.html" class="g-btn g-btn-primary">Análise Rápida</a>
+      <a href="/relatorio-rapido.html" class="g-btn g-btn-primary" data-auth="deslogado" hidden>Análise Rápida</a>
     </div>
   </div>
 
@@ -171,7 +171,7 @@
         <button class="g-btn g-btn-primary" id="btn-export-png">
           <i data-lucide="image" class="w-3.5 h-3.5"></i> PNG
         </button>
-        <a href="/relatorio-rapido.html" class="g-btn g-btn-outline">
+        <a href="/relatorio-rapido.html" class="g-btn g-btn-outline" data-auth="deslogado" hidden>
           <i data-lucide="search" class="w-3.5 h-3.5"></i> Nova análise
         </a>
       </div>

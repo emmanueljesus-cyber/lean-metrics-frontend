@@ -90,6 +90,8 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/api/v1/repositorios?*", route => route.fulfill({ json: { items: [repo()], page: 1, page_size: 12, total: 1, total_pages: 1 } }));
   await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [{ id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } }] }));
+  await page.route("**/api/v1/repositorios/github/dev/privado/branches", route => route.fulfill({ json: ["main", "develop", "feature/metricas"] }));
+  await page.route("**/api/v1/relatorios/repositorio/1/gerar", route => route.fulfill({ json: relatorio() }));
   let criou = false, excluiu = false;
   await page.route("**/api/v1/repositorios", async route => {
     expect(route.request().postDataJSON()).toEqual({ nome_proprietario: "dev", nome_repositorio: "privado", description: "Projeto importado", branch_padrao: "develop" });
@@ -105,12 +107,18 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await expect(page.getByRole("heading", { name: "privado" })).toBeVisible();
   await expect(page.getByText("Projeto importado")).toBeVisible();
   await expect(page.getByText("Branch padrão:")).toContainText("develop");
+  await page.getByRole("button", { name: "Recolher lista" }).click();
+  await expect(page.getByRole("heading", { name: "privado" })).toBeHidden();
+  await page.getByRole("button", { name: "Expandir lista" }).click();
   await semOverflow(page);
   await page.getByRole("button", { name: "Selecionar dev/privado" }).click();
   await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
-  await page.getByRole("button", { name: "Salvar repositório" }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByLabel("Branch padrão").locator("option")).toHaveCount(3);
+  await page.getByRole("button", { name: "Salvar e analisar" }).click();
+  await expect(page).toHaveURL(/relatorio\.html\?id=1/);
   expect(criou).toBe(true);
+  await page.goto("/painel.html");
+  await expect(page.locator('a[href="/relatorio-rapido.html"]')).toBeHidden();
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Excluir", exact: true }).click();
   await expect.poll(() => excluiu).toBe(true);
@@ -291,15 +299,11 @@ test("modal móvel, URL validada, cadastro e retorno do foco", async ({
       json: { items: [], page: 1, total: 0, page_size: 12, total_pages: 0 },
     }),
   );
-  let criou = false;
+  await page.route("**/api/v1/repositorios/github/fastapi/fastapi/branches", route => route.fulfill({ json: ["main", "develop"] }));
+  await page.route("**/api/v1/relatorios/repositorio/1/gerar", route => route.fulfill({ json: relatorio() }));
+  let dadosCriados: Record<string, unknown> | null = null;
   await page.route("**/api/v1/repositorios", async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      nome_proprietario: "fastapi",
-      nome_repositorio: "fastapi",
-      description: null,
-      branch_padrao: "develop",
-    });
-    criou = true;
+    dadosCriados = route.request().postDataJSON();
     await route.fulfill({ status: 201, json: repo() });
   });
   await page.goto("/painel.html");
@@ -317,11 +321,18 @@ test("modal móvel, URL validada, cadastro e retorno do foco", async ({
   await expect(page.getByLabel("Repositório", { exact: true })).toHaveValue(
     "fastapi",
   );
-  await page.getByLabel("Branch padrão").fill("develop");
-  await page.getByRole("button", { name: "Salvar repositório" }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  expect(criou).toBe(true);
-  await expect(page.locator("#btn-adicionar")).toBeFocused();
+  await page.getByLabel("Link do GitHub").dispatchEvent("change");
+  await expect(page.getByText("2 branches encontradas no GitHub.")).toBeVisible();
+  await page.getByLabel("Branch padrão").selectOption("develop");
+  await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
+  await page.getByRole("button", { name: "Salvar e analisar" }).click();
+  await expect(page).toHaveURL(/relatorio\.html\?id=1/);
+  expect(dadosCriados).toEqual({
+    nome_proprietario: "fastapi",
+    nome_repositorio: "fastapi",
+    description: null,
+    branch_padrao: "develop",
+  });
 });
 test("troca de tema não recarrega página nem consulta relatório", async ({
   page,

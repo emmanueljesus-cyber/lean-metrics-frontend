@@ -85,6 +85,7 @@ export const api = {
     atualizar: async (id: number, dados: { description?: string | null; default_branch?: string }) => normalizarRepositorio(await requisicao<RepositorioAPI>("/repositorios/" + id, { method: "PATCH", body: JSON.stringify({ description: dados.description, branch_padrao: dados.default_branch }) })),
     deletar: (id: number) => requisicao<null>("/repositorios/" + id, { method: "DELETE" }),
     listarDoGitHub: () => requisicao<RepositorioGitHub[]>("/repositorios/github/listar"),
+    listarBranchesDoGitHub: (owner: string, repo: string) => requisicao<string[]>("/repositorios/github/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo) + "/branches"),
   },
   relatorios: {
     gerar: async (id: number, tokenGitHub?: string) => normalizarRelatorio(await requisicao<RelatorioAPI>("/relatorios/repositorio/" + id + "/gerar", { headers: tokenGitHub ? { "X-GitHub-Token": tokenGitHub } : {} })),
