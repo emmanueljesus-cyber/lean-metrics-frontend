@@ -1,6 +1,18 @@
 import type { CriarRepositorioInput, Pagina, Repositorio, RelatorioRepositorio, UsuarioPerfil, ValorMetrica, RepositorioGitHub } from "./tipos";
-const origem = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
-export const API_BASE = origem.endsWith("/api/v1") ? origem : origem + "/api/v1";
+
+function baseApi(origem: string): string {
+  const normalizada = origem.trim().replace(/\/+$/, "");
+  return normalizada.endsWith("/api/v1") ? normalizada : normalizada + "/api/v1";
+}
+
+const origem = import.meta.env.VITE_API_URL ?? "";
+export const API_BASE = baseApi(origem);
+
+// O OAuth precisa iniciar no mesmo host usado pelo callback do GitHub para que
+// o navegador devolva o cookie `oauth_state`. Em desenvolvimento, isso evita
+// misturar 127.0.0.1 (servidor Vite) com localhost (callback cadastrado).
+const origemOAuth = import.meta.env.VITE_OAUTH_URL ?? "";
+export const OAUTH_BASE = origemOAuth.trim() ? baseApi(origemOAuth) : API_BASE;
 export class ErroApiHTTP extends Error {
   status: number;
   codigo: string;

@@ -1,4 +1,4 @@
-import { api, API_BASE, ErroApiHTTP } from "./api";
+import { api, OAUTH_BASE, ErroApiHTTP } from "./api";
 import { inicializarTema } from "./tema";
 import { inicializarIcones, mensagemErro } from "./utilitarios";
 import type { UsuarioPerfil } from "./tipos";
@@ -13,7 +13,7 @@ export function buscarUsuarioAtual(): Promise<UsuarioPerfil | null> {
 export function iniciarLoginGitHub(): void {
   const next = new URLSearchParams(location.search).get("next");
   if (next?.startsWith("/") && !next.startsWith("//")) sessionStorage.setItem("lean-login-next", next);
-  location.assign(API_BASE + "/autenticacao/github/entrar");
+  location.assign(OAUTH_BASE + "/autenticacao/github/entrar");
 }
 export async function exigirAutenticacao(): Promise<boolean> {
   try {

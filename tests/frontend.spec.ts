@@ -225,7 +225,7 @@ test("login usa GitHub OAuth e não oferece senha", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByLabel("Senha", { exact: true })).toHaveCount(0);
   await page.locator("[data-login-github]").click();
-  await expect(page).toHaveURL(/autenticacao\/github\/entrar/);
+  await expect(page).toHaveURL("http://localhost:8000/api/v1/autenticacao/github/entrar");
 });
 
 test("logout chama API e encerra a sessão por cookie", async ({ page }) => {

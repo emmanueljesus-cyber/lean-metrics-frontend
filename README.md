@@ -13,13 +13,13 @@ npm run dev
 
 Acesse http://localhost:3000. Inicie o backend com o [guia Docker](../tcc_lean/README.md). O proxy do Vite encaminha `/api` para `http://localhost:8000`.
 
-Para login, configure o OAuth App no backend conforme o [guia de configuração](../tcc_lean/docs/configuracao.md#login-com-github). Use `FRONTEND_URL=http://localhost:3000`, inclua essa origem em `CORS_ORIGINS` e mantenha o callback em `http://localhost:8000/api/v1/autenticacao/github/callback`. Use localhost no navegador durante todo o fluxo.
+Para login, configure o OAuth App no backend conforme o [guia de configuração](../tcc_lean/docs/configuracao.md#login-com-github). Use `FRONTEND_URL=http://localhost:3000`, inclua essa origem em `CORS_ORIGINS` e mantenha o callback em `http://localhost:8000/api/v1/autenticacao/github/callback`. `VITE_OAUTH_URL=http://localhost:8000` faz o login iniciar no mesmo host do callback e preserva o cookie de estado OAuth.
 
 O botão Entrar com GitHub abre o OAuth. O backend define o JWT em cookie HttpOnly e a interface envia requisições com `credentials: include`. Não há cadastro ou login por senha. A análise de repositórios públicos funciona sem sessão.
 
 ## Configuração e build
 
-Copie `.env.example` para `.env` se precisar definir `VITE_API_URL`. A variável aceita uma origem ou uma base terminada em `/api/v1`. Por padrão, usa o proxy local. Configure antes do build; ela é incorporada nos arquivos gerados.
+Copie `.env.example` para `.env`. `VITE_API_URL` aceita uma origem ou uma base terminada em `/api/v1`; vazia, usa o proxy local. `VITE_OAUTH_URL` define a origem canônica do backend para iniciar o login e deve ter o mesmo host do callback cadastrado no GitHub. Configure antes do build; as variáveis são incorporadas nos arquivos gerados.
 
 ```sh
 npm run build
