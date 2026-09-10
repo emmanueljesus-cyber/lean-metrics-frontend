@@ -156,7 +156,7 @@ importar.addEventListener("click", async () => {
       '<div class="github-import-header"><div><p class="eyebrow">Sua conta GitHub</p><h2>Escolha um repositório</h2><p class="muted">Escolha o projeto e confirme a branch antes da análise.</p></div><button type="button" class="button small-button" id="alternar-importacao" aria-expanded="true">Recolher lista</button></div><div id="conteudo-importacao">' +
       (dados.length
         ? '<div class="github-import-grid" role="list">' + dados.map((r, i) =>
-          '<article class="github-import-item" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a><button type="button" class="button primary small-button" data-importar-repositorio="' + i + '" aria-label="Selecionar ' + e(r.full_name) + '">Selecionar</button></div></article>'
+          '<article class="github-import-item" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a><button type="button" class="button small-button" data-configurar-repositorio="' + i + '" aria-label="Escolher branch de ' + e(r.full_name) + '">Escolher branch</button><button type="button" class="button primary small-button" data-importar-repositorio="' + i + '" aria-label="Analisar ' + e(r.full_name) + '">Analisar</button></div></article>'
         ).join('') + '</div>'
         : '<div class="estado"><p>Nenhum repositório foi retornado pelo GitHub.</p></div>') + '</div>';
     remotos.querySelector("#alternar-importacao")!.addEventListener("click", event => {
@@ -166,8 +166,8 @@ importar.addEventListener("click", async () => {
       botao.setAttribute("aria-expanded", String(!conteudo.hidden));
       botao.textContent = conteudo.hidden ? "Expandir lista" : "Recolher lista";
     });
-    remotos.querySelectorAll<HTMLButtonElement>("[data-importar-repositorio]").forEach(botao => botao.addEventListener("click", async () => {
-      const r = dados[Number(botao.dataset.importarRepositorio)];
+    remotos.querySelectorAll<HTMLButtonElement>("[data-configurar-repositorio]").forEach(botao => botao.addEventListener("click", async () => {
+      const r = dados[Number(botao.dataset.configurarRepositorio)];
       if (!r) return;
       abrir();
       owner.value = r.owner.login;
@@ -175,6 +175,24 @@ importar.addEventListener("click", async () => {
       link.value = r.html_url || urlGithub(r.owner.login, r.name);
       (document.getElementById("input-descricao") as HTMLInputElement).value = r.description ?? "";
       await carregarBranches(r.owner.login, r.name, r.branch_padrao);
+    }));
+    remotos.querySelectorAll<HTMLButtonElement>("[data-importar-repositorio]").forEach(botao => botao.addEventListener("click", async () => {
+      const r = dados[Number(botao.dataset.importarRepositorio)];
+      if (!r || botao.disabled) return;
+      setBtnCarregando(botao, true);
+      avisoRemoto.textContent = "Cadastrando " + r.full_name + " e iniciando a análise…";
+      try {
+        const criado = await api.repositorios.criar({
+          owner_name: r.owner.login,
+          repository_name: r.name,
+          description: r.description,
+          default_branch: r.branch_padrao,
+        });
+        location.assign("/relatorio.html?id=" + criado.id);
+      } catch (falha) {
+        avisoRemoto.textContent = mensagemErro(falha);
+        setBtnCarregando(botao, false);
+      }
     }));
     inicializarIcones();
   } catch (falha) { avisoRemoto.textContent = mensagemErro(falha); }
