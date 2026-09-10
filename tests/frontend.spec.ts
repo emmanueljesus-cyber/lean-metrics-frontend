@@ -89,7 +89,10 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await sessao(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/api/v1/repositorios?*", route => route.fulfill({ json: { items: [repo()], page: 1, page_size: 12, total: 1, total_pages: 1 } }));
-  await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [{ id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } }] }));
+  await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [
+    { id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } },
+    { id: 11, name: "fastapi-1", full_name: "fastapi/fastapi-1", private: false, branch_padrao: "main", description: "Já importado", html_url: "https://github.com/fastapi/fastapi-1", owner: { login: "fastapi" } },
+  ] }));
   await page.route("**/api/v1/repositorios/github/dev/privado/branches", route => route.fulfill({ json: ["main", "develop", "feature/metricas"] }));
   await page.route("**/api/v1/relatorios/repositorio/1/gerar", route => route.fulfill({ json: relatorio() }));
   let criou = false, excluiu = false;
@@ -106,13 +109,16 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await page.getByRole("button", { name: "Importar do GitHub" }).click();
   await expect(page.getByRole("heading", { name: "privado" })).toBeVisible();
   await expect(page.getByText("Projeto importado")).toBeVisible();
-  await expect(page.getByText("Branch padrão:")).toContainText("develop");
+  await expect(page.getByText("Já cadastrado", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "fastapi/fastapi-1 já cadastrado" })).toBeDisabled();
+  await expect(page.locator(".github-import-item").filter({ has: page.getByRole("heading", { name: "privado" }) })).toContainText("Branch padrão: develop");
   await page.getByRole("button", { name: "Recolher lista" }).click();
   await expect(page.getByRole("heading", { name: "privado" })).toBeHidden();
   await page.getByRole("button", { name: "Expandir lista" }).click();
   await semOverflow(page);
   await page.getByRole("button", { name: "Selecionar dev/privado" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByLabel("Branch padrão")).toHaveCSS("color-scheme", "dark");
   await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
   await expect(page.getByLabel("Branch padrão").locator("option")).toHaveCount(3);
   await page.getByLabel("Branch padrão").selectOption("feature/metricas");

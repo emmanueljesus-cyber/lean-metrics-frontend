@@ -149,14 +149,20 @@ area.before(avisoRemoto, remotos);
 importar.addEventListener("click", async () => {
   importar.disabled = true; avisoRemoto.textContent = "Consultando seus repositórios no GitHub…";
   try {
-    const dados = await api.repositorios.listarDoGitHub();
+    const [dados, cadastrados] = await Promise.all([
+      api.repositorios.listarDoGitHub(),
+      api.repositorios.listar(1, 100),
+    ]);
+    const nomesCadastrados = new Set(cadastrados.items.map(r => (r.owner_name + "/" + r.repository_name).toLowerCase()));
     remotos.hidden = false;
     avisoRemoto.textContent = dados.length + " repositórios encontrados.";
     remotos.innerHTML =
       '<div class="github-import-header"><div><p class="eyebrow">Sua conta GitHub</p><h2>Escolha um repositório</h2><p class="muted">Escolha o projeto e confirme a branch antes da análise.</p></div><button type="button" class="button small-button" id="alternar-importacao" aria-expanded="true">Recolher lista</button></div><div id="conteudo-importacao">' +
       (dados.length
-        ? '<div class="github-import-grid" role="list">' + dados.map((r, i) =>
-          '<article class="github-import-item" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a><button type="button" class="button primary small-button" data-configurar-repositorio="' + i + '" aria-label="Selecionar ' + e(r.full_name) + '">Selecionar</button></div></article>'
+        ? '<div class="github-import-grid" role="list">' + dados.map((r, i) => {
+          const cadastrado = nomesCadastrados.has(r.full_name.toLowerCase());
+          return '<article class="github-import-item' + (cadastrado ? ' is-registered' : '') + '" role="listitem"><div class="github-import-title"><div><p class="eyebrow">' + e(r.owner.login) + '</p><h3>' + e(r.name) + '</h3></div><div class="github-import-badges"><span class="badge">' + (r.private ? 'Privado' : 'Público') + '</span>' + (cadastrado ? '<span class="badge registered">Já cadastrado</span>' : '') + '</div></div><p class="muted github-import-description">' + e(r.description || 'Sem descrição no GitHub.') + '</p><p class="small muted">Branch padrão: <strong>' + e(r.branch_padrao) + '</strong></p><div class="github-import-actions"><a class="button small-button" href="' + e(r.html_url) + '" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a>' + (cadastrado ? '<button type="button" class="button small-button" disabled aria-label="' + e(r.full_name) + ' já cadastrado">Cadastrado</button>' : '<button type="button" class="button primary small-button" data-configurar-repositorio="' + i + '" aria-label="Selecionar ' + e(r.full_name) + '">Selecionar</button>') + '</div></article>';
+        }
         ).join('') + '</div>'
         : '<div class="estado"><p>Nenhum repositório foi retornado pelo GitHub.</p></div>') + '</div>';
     remotos.querySelector("#alternar-importacao")!.addEventListener("click", event => {
