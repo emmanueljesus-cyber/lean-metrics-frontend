@@ -90,10 +90,11 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/api/v1/repositorios?*", route => route.fulfill({ json: { items: [repo()], page: 1, page_size: 12, total: 1, total_pages: 1 } }));
   await page.route("**/api/v1/repositorios/github/listar", route => route.fulfill({ json: [{ id: 10, name: "privado", full_name: "dev/privado", private: true, branch_padrao: "develop", description: "Projeto importado", html_url: "https://github.com/dev/privado", owner: { login: "dev" } }] }));
+  await page.route("**/api/v1/repositorios/github/dev/privado/branches", route => route.fulfill({ json: ["main", "develop", "feature/metricas"] }));
   await page.route("**/api/v1/relatorios/repositorio/1/gerar", route => route.fulfill({ json: relatorio() }));
   let criou = false, excluiu = false;
   await page.route("**/api/v1/repositorios", async route => {
-    expect(route.request().postDataJSON()).toEqual({ nome_proprietario: "dev", nome_repositorio: "privado", description: "Projeto importado", branch_padrao: "develop" });
+    expect(route.request().postDataJSON()).toEqual({ nome_proprietario: "dev", nome_repositorio: "privado", description: "Projeto importado", branch_padrao: "feature/metricas" });
     criou = true;
     await route.fulfill({ status: 201, json: repo() });
   });
@@ -110,7 +111,12 @@ test("importação preserva a branch remota e exclusão usa o cadastro local", a
   await expect(page.getByRole("heading", { name: "privado" })).toBeHidden();
   await page.getByRole("button", { name: "Expandir lista" }).click();
   await semOverflow(page);
-  await page.getByRole("button", { name: "Analisar dev/privado" }).click();
+  await page.getByRole("button", { name: "Selecionar dev/privado" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByLabel("Branch padrão")).toHaveValue("develop");
+  await expect(page.getByLabel("Branch padrão").locator("option")).toHaveCount(3);
+  await page.getByLabel("Branch padrão").selectOption("feature/metricas");
+  await page.getByRole("button", { name: "Salvar e analisar" }).click();
   await expect(page).toHaveURL(/relatorio\.html\?id=1/);
   expect(criou).toBe(true);
   await page.goto("/painel.html");
